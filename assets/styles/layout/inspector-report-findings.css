@@ -1,0 +1,148 @@
+@import url("../components/variables.css");
+
+body {
+  background-color: var(--bfp-light);
+}
+
+.main-content {
+  margin-left: 250px;
+  padding: 20px;
+  transition: all 0.3s;
+}
+
+.compliance-status {
+  display: flex;
+  gap: 20px;
+  margin: 20px 0;
+}
+
+.status-card {
+  flex: 1;
+  padding: 20px;
+  border-radius: 8px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s;
+  border: 2px solid transparent;
+}
+
+.status-card.compliant {
+  background-color: #d4edda;
+  border-color: #28a745;
+}
+
+.status-card.partially-compliant {
+  background-color: #f8d7da;
+  border-color: var(--bfp-red);
+}
+
+.status-card.non-compliant {
+  background-color: #d1ecf1;
+  border-color: #17a2b8;
+}
+
+.status-card.selected {
+  transform: scale(1.08);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.violation-item {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 15px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.violation-header {
+  display: flex;
+  justify-content: between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.violation-title {
+  color: var(--bfp-red);
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+.photo-upload-area {
+  border: 2px dashed #ccc;
+  border-radius: 8px;
+  padding: 40px;
+  text-align: center;
+  margin: 20px 0;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.photo-upload-area:hover {
+  border-color: var(--bfp-red);
+  background-color: rgba(220, 53, 69, 0.05);
+}
+
+.btn-bfp {
+  background-color: var(--bfp-red);
+  border-color: var(--bfp-red);
+  color: white;
+}
+
+.btn-bfp:hover {
+  background-color: var(--bfp-dark-red);
+  border-color: var(--bfp-dark-red);
+  color: white;
+}
+
+.signature-area {
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  height: 200px;
+  margin: 20px 0;
+  position: relative;
+  background: white;
+}
+
+.signature-canvas {
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+}
+
+.clear-signature {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: var(--bfp-red);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 5px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.form-section {
+  background: white;
+  border-radius: 8px;
+  padding: 25px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.section-title {
+  color: var(--bfp-red);
+  font-weight: bold;
+  margin-bottom: 20px;
+  font-size: 1.2em;
+}
+
+@media (max-width: 768px) {
+  .main-content {
+    margin-left: 0;
+  }
+
+  .compliance-status {
+    flex-direction: column;
+  }
+}

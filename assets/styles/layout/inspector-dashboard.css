@@ -1,0 +1,136 @@
+@import url("../components/variables.css");
+
+body {
+  background-color: var(--bfp-light);
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.main-content {
+  margin-left: 250px;
+  padding: 20px;
+}
+
+.header {
+  background: white;
+  padding: 20px 30px;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  margin-bottom: 30px;
+}
+
+.stats-card {
+  background: white;
+  border-radius: 15px;
+  padding: 25px;
+  margin-bottom: 20px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+  transition: transform 0.3s ease;
+  cursor: pointer;
+  height: 90%;
+}
+
+.stats-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.stats-number {
+  font-size: 2.5rem;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+.stats-label {
+  color: #6c757d;
+  font-weight: 500;
+  font-size: 1.3rem;
+}
+
+.system-notice {
+  background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+  border: 1px solid #ffeaa7;
+  border-radius: 10px;
+  padding: 15px;
+  margin-bottom: 30px;
+  position: relative;
+}
+
+.system-notice::before {
+  content: "\f071";
+  font-family: "Font Awesome 6 Free";
+  font-weight: 900;
+  position: absolute;
+  left: 15px;
+  top: 15px;
+  color: #b8860b;
+}
+
+.system-notice-content {
+  padding-left: 30px;
+}
+
+.map-container {
+  background: white;
+  border-radius: 15px;
+  padding: 20px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+}
+
+#map {
+  height: 400px;
+  border-radius: 10px;
+}
+
+.modal-header {
+  background: linear-gradient(
+    135deg,
+    var(--bfp-red) 0%,
+    var(--bfp-dark-red) 100%
+  );
+  color: white;
+}
+
+.btn-bfp {
+  background: linear-gradient(
+    135deg,
+    var(--bfp-red) 0%,
+    var(--bfp-dark-red) 100%
+  );
+  border: none;
+  color: white;
+}
+
+.btn-bfp:hover {
+  background: linear-gradient(135deg, var(--bfp-dark-red) 0%, #8b1e2b 100%);
+  color: white;
+}
+
+.table th {
+  background-color: var(--bfp-light);
+  border: none;
+  font-weight: 600;
+}
+
+.badge-scheduled {
+  background-color: #6f42c1;
+}
+.badge-ongoing {
+  background-color: #6c757d;
+}
+.badge-completed {
+  background-color: #198754;
+}
+.badge-pending {
+  background-color: var(--bfp-gold);
+  color: var(--bfp-dark);
+}
+
+@media (max-width: 768px) {
+  .main-content {
+    margin-left: 0;
+  }
+
+  .mobile-toggle {
+    display: block !important;
+  }
+}

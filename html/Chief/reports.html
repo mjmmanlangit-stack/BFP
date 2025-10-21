@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BFP Chief - Compliance Reports</title>
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="../../assets/styles/components/sidebar.css">
+    <style>
+      :root {
+        --bfp-red: #dc3545;
+        --bfp-dark-red: #a02834;
+        --bfp-gold: #ffc107;
+        --bfp-dark: #1a1a1a;
+        --bfp-light: #f8f9fa;
+      }
+
+      body {
+        background-color: var(--bfp-light);
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      }
+
+      
+      .top-navbar {
+        background-color: white;
+        padding: 15px 30px;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        margin-bottom: 30px;
+      }
+
+      .main-container {
+        margin-left: 250px;
+        padding: 20px;
+      }
+      
+      .card {
+        border: none;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        border-radius: 10px;
+        margin-bottom: 2rem;
+      }
+
+      .card-header {
+        background: linear-gradient(
+          135deg,
+          var(--bfp-red) 0%,
+          var(--bfp-dark-red) 100%
+        );
+        color: white;
+        border-radius: 10px 10px 0 0 !important;
+        padding: 1rem 1.5rem;
+      }
+
+      .table {
+        margin-bottom: 0;
+      }
+
+      .table thead th {
+        background-color: var(--bfp-dark);
+        color: white;
+        border: none;
+        font-weight: 600;
+        vertical-align: middle;
+      }
+
+      .table tbody tr {
+        transition: all 0.3s ease;
+      }
+
+      .table tbody tr:hover {
+        background-color: rgba(220, 53, 69, 0.05);
+        transform: scale(1.01);
+      }
+
+      .btn-view {
+        background: linear-gradient(
+          135deg,
+          var(--bfp-red) 0%,
+          var(--bfp-dark-red) 100%
+        );
+        border: none;
+        color: white;
+        padding: 0.4rem 1.2rem;
+        border-radius: 5px;
+        transition: all 0.3s ease;
+      }
+
+      .btn-view:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(220, 53, 69, 0.3);
+        color: white;
+      }
+
+      .btn-schedule {
+        background: linear-gradient(135deg, var(--bfp-gold) 0%, #e0a800 100%);
+        border: none;
+        color: var(--bfp-dark);
+        font-weight: 600;
+        padding: 0.6rem 1.5rem;
+        border-radius: 5px;
+        transition: all 0.3s ease;
+      }
+
+      .btn-schedule:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(255, 193, 7, 0.4);
+      }
+
+      .modal-header {
+        background: linear-gradient(
+          135deg,
+          var(--bfp-red) 0%,
+          var(--bfp-dark-red) 100%
+        );
+        color: white;
+      }
+
+      .modal-header .btn-close {
+        filter: brightness(0) invert(1);
+      }
+
+      .info-label {
+        font-weight: 600;
+        color: var(--bfp-dark-red);
+        margin-bottom: 0.3rem;
+      }
+
+      .info-value {
+        color: var(--bfp-dark);
+        margin-bottom: 1rem;
+        padding: 0.5rem;
+        background-color: var(--bfp-light);
+        border-radius: 5px;
+      }
+
+      .badge-status {
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-weight: 600;
+      }
+
+      .badge-pending {
+        background-color: var(--bfp-gold);
+        color: var(--bfp-dark);
+      }
+
+      .badge-completed {
+        background-color: #28a745;
+        color: white;
+      }
+
+      .badge-overdue {
+        background-color: var(--bfp-red);
+        color: white;
+      }
+
+      .search-box {
+        max-width: 400px;
+        margin-bottom: 1.5rem;
+      }
+
+      .defects-list {
+        background-color: #fff3cd;
+        border-left: 4px solid var(--bfp-gold);
+        padding: 1rem;
+        border-radius: 5px;
+      }
+
+      .inspector-badge {
+        background-color: var(--bfp-dark);
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        display: inline-block;
+        margin: 0.3rem;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+      <div class="logo-section">
+        <div class="logo">
+          <i
+            class="fas fa-shield-alt"
+            style="color: var(--bfp-red); font-size: 24px"
+          ></i>
+        </div>
+        <h5 class="mb-0">BFP SiteProfiler</h5>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-item">
+          <a href="./dashboard.html" class="nav-link ">
+            <i class="fas fa-tachometer-alt"></i>
+            Dashboard
+          </a>
+        </div>
+        <div class="nav-item">
+          <a href="./sched_inspection.html" class="nav-link">
+            <i class="fas fa-building"></i>
+            Schedule Inspection
+          </a>
+        </div>
+        <div class="nav-item">
+          <a href="./reports.html" class="nav-link active">
+            <i class="fas fa-building"></i>
+            Reports
+          </a>
+        </div>
+      </nav>
+
+      <div class="nav-item">
+        <a href="../index.php" class="nav-link">
+          <i class="fas fa-sign-out-alt"></i>
+          Logout
+        </a>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-container">
+      <div class="top-navbar d-flex justify-content-between align-items-center">
+        <div>
+          <h4 class="mb-0">Welcome, Fire Chief Rodriguez</h4>
+          <small class="text-muted">Catanduanes Fire Station</small>
+        </div>
+        
+      </div>
+
+      <!-- Search and Actions -->
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <div class="search-box">
+            <input
+              type="text"
+              class="form-control"
+              id="searchInput"
+              placeholder="Search establishments..."
+            />
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Establishments Table -->
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="fas fa-building"></i> Registered Establishments
+          </h5>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover" id="establishmentsTable">
+              <thead>
+                <tr>
+                  <th>Establishment Name</th>
+                  <th>Address</th>
+                  <th>Type</th>
+                  <th>Last Inspection</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="tableBody">
+                <!-- Table rows will be populated by JavaScript -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- View Details Modal -->
+    <div class="modal fade" id="detailsModal" tabindex="-1">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">
+              <i class="fas fa-file-alt"></i> Inspection Compliance Report
+            </h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+            ></button>
+          </div>
+          <div class="modal-body" id="modalBody">
+            <!-- Content will be populated by JavaScript -->
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script>
+      // Sample data
+      let establishments = [
+        {
+          id: 1,
+          name: "Grand Plaza Hotel",
+          address: "123 Main Street, Quezon City",
+          type: "Hotel",
+          lastInspection: "2025-09-15",
+          status: "Pending",
+          inspectors: ["FO3 Juan Dela Cruz", "FO2 Maria Santos"],
+          orderNo: "IO-2025-001",
+          inspectionDate: "2025-09-15",
+          defects: [
+            "Fire extinguisher expired on 3rd floor",
+            "Emergency exit blocked in west wing",
+            "Fire alarm system needs maintenance",
+          ],
+          gracePeriod: "30 days (Until October 15, 2025)",
+        },
+        {
+          id: 2,
+          name: "TechHub Office Building",
+          address: "456 Business Ave, Makati City",
+          type: "Office",
+          lastInspection: "2025-08-20",
+          status: "Completed",
+          inspectors: ["FO3 Pedro Rodriguez", "SFO1 Ana Garcia"],
+          orderNo: "IO-2025-002",
+          inspectionDate: "2025-08-20",
+          defects: ["Incomplete fire safety signage on floors 5-7"],
+          gracePeriod: "45 days (Until October 4, 2025)",
+        },
+        {
+          id: 3,
+          name: "MegaMall Shopping Center",
+          address: "789 Commerce Road, Pasig City",
+          type: "Shopping Mall",
+          lastInspection: "2025-07-10",
+          status: "Overdue",
+          inspectors: ["FO3 Juan Dela Cruz", "FO3 Pedro Rodriguez"],
+          orderNo: "IO-2025-003",
+          inspectionDate: "2025-07-10",
+          defects: [
+            "Sprinkler system malfunction in food court",
+            "Fire doors not closing properly",
+            "Insufficient fire extinguishers in parking area",
+          ],
+          gracePeriod: "30 days (Expired: August 9, 2025)",
+        },
+        {
+          id: 4,
+          name: "Sunrise Restaurant",
+          address: "321 Food Street, Manila",
+          type: "Restaurant",
+          lastInspection: "2025-09-25",
+          status: "Completed",
+          inspectors: ["FO2 Maria Santos", "SFO1 Ana Garcia"],
+          orderNo: "IO-2025-004",
+          inspectionDate: "2025-09-25",
+          defects: [
+            "Kitchen fire suppression system needs inspection certificate",
+          ],
+          gracePeriod: "30 days (Until October 25, 2025)",
+        },
+        {
+          id: 5,
+          name: "Industrial Park Factory A",
+          address: "555 Industrial Zone, Cavite",
+          type: "Factory",
+          lastInspection: "2025-09-01",
+          status: "Pending",
+          inspectors: ["FO3 Pedro Rodriguez", "FO3 Juan Dela Cruz"],
+          orderNo: "IO-2025-005",
+          inspectionDate: "2025-09-01",
+          defects: [
+            "Hazardous material storage area lacks proper ventilation",
+            "Fire detection system outdated",
+            "Emergency evacuation plan not posted",
+          ],
+          gracePeriod: "60 days (Until October 31, 2025)",
+        },
+      ];
+
+      // Populate table
+      function populateTable(data = establishments) {
+        const tableBody = document.getElementById("tableBody");
+        tableBody.innerHTML = "";
+
+        data.forEach((est) => {
+          const statusClass =
+            est.status === "Pending"
+              ? "badge-pending"
+              : est.status === "Completed"
+              ? "badge-completed"
+              : "badge-overdue";
+
+          const row = `
+                    <tr>
+                        <td><strong>${est.name}</strong></td>
+                        <td>${est.address}</td>
+                        <td>${est.type}</td>
+                        <td>${est.lastInspection}</td>
+                        <td><span class="badge-status ${statusClass}">${est.status}</span></td>
+                        <td>
+                            <button class="btn btn-view btn-sm" onclick="viewDetails(${est.id})">
+                                <i class="fas fa-eye"></i> View
+                            </button>
+                        </td>
+                    </tr>
+                `;
+          tableBody.innerHTML += row;
+        });
+      }
+
+      // View details
+      function viewDetails(id) {
+        const est = establishments.find((e) => e.id === id);
+        const modalBody = document.getElementById("modalBody");
+
+        const defectsList = est.defects.map((d) => `<li>${d}</li>`).join("");
+
+        modalBody.innerHTML = `
+                <div class="row">
+                    <div class="col-md-12">
+                        <h5 class="text-center mb-4" style="color: var(--bfp-dark-red);">${est.name}</h5>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="info-label"><i class="fas fa-hashtag"></i> Inspection Order No.</div>
+                        <div class="info-value">${est.orderNo}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="info-label"><i class="fas fa-calendar"></i> Date of Inspection</div>
+                        <div class="info-value">${est.inspectionDate}</div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="info-label"><i class="fas fa-user-shield"></i> Fire Safety Inspectors</div>
+                        <div class="info-value">
+                            <span class="inspector-badge">${est.inspectors[0]}</span>
+                            <span class="inspector-badge">${est.inspectors[1]}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="info-label"><i class="fas fa-exclamation-triangle"></i> Defects/Deficiencies</div>
+                        <div class="defects-list">
+                            <ul class="mb-0">
+                                ${defectsList}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-md-12">
+                        <div class="info-label"><i class="fas fa-hourglass-half"></i> Grace Period</div>
+                        <div class="info-value">
+                            <strong>${est.gracePeriod}</strong>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+        const modal = new bootstrap.Modal(
+          document.getElementById("detailsModal")
+        );
+        modal.show();
+      }
+
+      // Search functionality
+      document
+        .getElementById("searchInput")
+        .addEventListener("input", function (e) {
+          const searchTerm = e.target.value.toLowerCase();
+          const filtered = establishments.filter(
+            (est) =>
+              est.name.toLowerCase().includes(searchTerm) ||
+              est.address.toLowerCase().includes(searchTerm) ||
+              est.type.toLowerCase().includes(searchTerm)
+          );
+          populateTable(filtered);
+        });
+
+      // Initialize
+      populateTable();
+
+    </script>
+  </body>
+</html>

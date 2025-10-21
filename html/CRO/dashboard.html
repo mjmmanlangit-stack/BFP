@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BFP CRO Dashboard - Site Profiler</title>
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../../assets/styles/components/sidebar.css" />
+    <style>
+      :root {
+        --bfp-red: #dc3545;
+        --bfp-dark-red: #a02834;
+        --bfp-gold: #ffc107;
+        --bfp-dark: #1a1a1a;
+        --bfp-light: #f8f9fa;
+      }
+
+      body {
+        background-color: var(--bfp-light);
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      }
+
+      .main-container {
+        padding: 30px 20px;
+        padding-left: 270px;
+      }
+
+      .welcome-section {
+        background: linear-gradient(
+          135deg,
+          var(--bfp-red) 0%,
+          var(--bfp-dark-red) 100%
+        );
+        color: white;
+        padding: 30px;
+        border-radius: 10px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        margin-bottom: 30px;
+      }
+
+      .welcome-section h1 {
+        font-size: 2rem;
+        margin-bottom: 10px;
+      }
+
+      .welcome-section p {
+        margin: 0;
+        opacity: 0.9;
+      }
+
+      .stat-card {
+        background: white;
+        border-radius: 10px;
+        padding: 25px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+        height: 100%;
+        border-left: 4px solid;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+      }
+
+      .stat-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 100px;
+        height: 100px;
+        opacity: 0.1;
+        font-family: "Font Awesome 6 Free";
+        font-weight: 900;
+        font-size: 80px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .stat-card.total {
+        border-left-color: #007bff;
+      }
+
+      .stat-card.total::before {
+        content: "\f1ad";
+        color: #007bff;
+      }
+
+      .stat-card.pending {
+        border-left-color: var(--bfp-gold);
+      }
+
+      .stat-card.pending::before {
+        content: "\f017";
+        color: var(--bfp-gold);
+      }
+
+      .stat-card.approved {
+        border-left-color: #28a745;
+      }
+
+      .stat-card.approved::before {
+        content: "\f058";
+        color: #28a745;
+      }
+
+      .stat-card.rejected {
+        border-left-color: var(--bfp-red);
+      }
+
+      .stat-card.rejected::before {
+        content: "\f057";
+        color: var(--bfp-red);
+      }
+
+      .stat-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        color: white;
+        margin-bottom: 15px;
+      }
+
+      .stat-card.total .stat-icon {
+        background: linear-gradient(135deg, #007bff, #0056b3);
+      }
+
+      .stat-card.pending .stat-icon {
+        background: linear-gradient(135deg, var(--bfp-gold), #e0a800);
+      }
+
+      .stat-card.approved .stat-icon {
+        background: linear-gradient(135deg, #28a745, #1e7e34);
+      }
+
+      .stat-card.rejected .stat-icon {
+        background: linear-gradient(
+          135deg,
+          var(--bfp-red),
+          var(--bfp-dark-red)
+        );
+      }
+
+      .stat-number {
+        font-size: 2.5rem;
+        font-weight: bold;
+        margin-bottom: 5px;
+        position: relative;
+        z-index: 1;
+      }
+
+      .stat-label {
+        color: #6c757d;
+        font-size: 0.95rem;
+        font-weight: 500;
+        position: relative;
+        z-index: 1;
+      }
+
+      .stat-change {
+        font-size: 0.85rem;
+        margin-top: 10px;
+        position: relative;
+        z-index: 1;
+      }
+
+      .stat-change.positive {
+        color: #28a745;
+      }
+
+      .stat-change.negative {
+        color: var(--bfp-red);
+      }
+
+      .chart-container {
+        background: white;
+        border-radius: 10px;
+        padding: 25px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        margin-bottom: 30px;
+      }
+
+      .chart-title {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: var(--bfp-dark-red);
+        margin-bottom: 20px;
+      }
+
+      .recent-activity {
+        background: white;
+        border-radius: 10px;
+        padding: 25px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+      }
+
+      .activity-item {
+        padding: 15px;
+        border-left: 3px solid;
+        margin-bottom: 15px;
+        background-color: var(--bfp-light);
+        border-radius: 5px;
+        transition: all 0.3s;
+      }
+
+      .activity-item:hover {
+        transform: translateX(5px);
+      }
+
+      .activity-item.approved {
+        border-left-color: #28a745;
+      }
+
+      .activity-item.rejected {
+        border-left-color: var(--bfp-red);
+      }
+
+      .activity-item.pending {
+        border-left-color: var(--bfp-gold);
+      }
+
+      .activity-time {
+        font-size: 0.85rem;
+        color: #6c757d;
+      }
+
+      .activity-text {
+        margin: 5px 0;
+        font-weight: 500;
+      }
+
+      .action-btn {
+        width: 100%;
+        padding: 15px;
+        border-radius: 8px;
+        border: none;
+        font-weight: 600;
+        transition: all 0.3s;
+        margin-bottom: 10px;
+      }
+
+      .action-btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+      }
+
+      .action-btn.primary {
+        background: linear-gradient(
+          135deg,
+          var(--bfp-red),
+          var(--bfp-dark-red)
+        );
+        color: white;
+      }
+
+      .action-btn.secondary {
+        background: linear-gradient(135deg, #6c757d, #495057);
+        color: white;
+      }
+
+      .business-type-chart {
+        height: 300px;
+      }
+
+      .progress-stat {
+        margin-bottom: 20px;
+      }
+
+      .progress-label {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 8px;
+        font-size: 0.9rem;
+      }
+
+      .progress {
+        height: 10px;
+        border-radius: 5px;
+      }
+
+      @media (max-width: 768px) {
+        .welcome-section h1 {
+          font-size: 1.5rem;
+        }
+
+        .stat-number {
+          font-size: 2rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+      <div class="logo-section">
+        <div class="logo">
+          <i
+            class="fas fa-shield-alt"
+            style="color: var(--bfp-red); font-size: 24px"
+          ></i>
+        </div>
+        <h5 class="mb-0">BFP SiteProfiler</h5>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-item">
+          <a href="#" class="nav-link active">
+            <i class="fas fa-tachometer-alt"></i>
+            Dashboard
+          </a>
+        </div>
+        <div class="nav-item">
+          <a href="./establishments.html" class="nav-link">
+            <i class="fas fa-building"></i>
+            Establishments
+          </a>
+        </div>
+      </nav>
+
+      <div class="nav-item">
+        <a href="../index.php" class="nav-link">
+          <i class="fas fa-sign-out-alt"></i>
+          Logout
+        </a>
+      </div>
+    </div>
+
+    <div class="container-fluid main-container">
+      <div class="welcome-section animate__animated animate__fadeInDown">
+        <h1>
+          <i class="fas fa-chart-line"></i> Customer Relationship Officer
+          Dashboard
+        </h1>
+        <p>
+          Welcome back! Monitor and verify establishment registrations
+          efficiently.
+        </p>
+        <small
+          ><i class="fas fa-calendar-day"></i> Today:
+          <span id="currentDate"></span
+        ></small>
+      </div>
+
+      <div class="row mb-2">
+        <div class="col-lg-3 col-md-6 mb-4">
+          <div class="stat-card total animate__animated animate__fadeInUp">
+            <div class="stat-icon">
+              <i class="fas fa-building"></i>
+            </div>
+            <div class="stat-number" id="totalEstablishments">0</div>
+            <div class="stat-label">Total Registered Establishments</div>
+            <div class="stat-change positive">
+              <i class="fas fa-arrow-up"></i> 12% from last month
+            </div>
+          </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-4">
+          <div
+            class="stat-card pending animate__animated animate__fadeInUp"
+            style="animation-delay: 0.1s"
+          >
+            <div class="stat-icon">
+              <i class="fas fa-clock"></i>
+            </div>
+            <div class="stat-number" id="pendingEstablishments">0</div>
+            <div class="stat-label">Pending Verification</div>
+            <div class="stat-change positive">
+              <i class="fas fa-arrow-up"></i> 5 new today
+            </div>
+          </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-4">
+          <div
+            class="stat-card approved animate__animated animate__fadeInUp"
+            style="animation-delay: 0.2s"
+          >
+            <div class="stat-icon">
+              <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="stat-number" id="approvedEstablishments">0</div>
+            <div class="stat-label">Approved Establishments</div>
+            <div class="stat-change positive">
+              <i class="fas fa-arrow-up"></i> 8% this week
+            </div>
+          </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-4">
+          <div
+            class="stat-card rejected animate__animated animate__fadeInUp"
+            style="animation-delay: 0.3s"
+          >
+            <div class="stat-icon">
+              <i class="fas fa-times-circle"></i>
+            </div>
+            <div class="stat-number" id="rejectedEstablishments">0</div>
+            <div class="stat-label">Rejected Applications</div>
+            <div class="stat-change negative">
+              <i class="fas fa-arrow-down"></i> 3% decrease
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row mb-4">
+        <div class="col-lg-6 mb-2">
+          <div class="chart-container">
+            <div class="chart-title">
+              <i class="fas fa-industry"></i> Establishments by Business Type
+            </div>
+            <canvas id="businessTypeChart" class="business-type-chart"></canvas>
+          </div>
+        </div>
+
+        <div class="col-lg-6 mb-4">
+          <div class="chart-container">
+            <div class="chart-title">
+              <i class="fas fa-tasks"></i> Verification Progress
+            </div>
+            <div class="progress-stat">
+              <div class="progress-label">
+                <span><i class="fas fa-hotel"></i> Hotels</span>
+                <span><strong>85%</strong></span>
+              </div>
+              <div class="progress">
+                <div class="progress-bar bg-success" style="width: 85%"></div>
+              </div>
+            </div>
+            <div class="progress-stat">
+              <div class="progress-label">
+                <span><i class="fas fa-store"></i> Shopping Malls</span>
+                <span><strong>72%</strong></span>
+              </div>
+              <div class="progress">
+                <div
+                  class="progress-bar"
+                  style="width: 72%; background-color: var(--bfp-gold)"
+                ></div>
+              </div>
+            </div>
+            <div class="progress-stat">
+              <div class="progress-label">
+                <span><i class="fas fa-utensils"></i> Restaurants</span>
+                <span><strong>90%</strong></span>
+              </div>
+              <div class="progress">
+                <div class="progress-bar bg-success" style="width: 90%"></div>
+              </div>
+            </div>
+            <div class="progress-stat">
+              <div class="progress-label">
+                <span><i class="fas fa-building"></i> Office Buildings</span>
+                <span><strong>65%</strong></span>
+              </div>
+              <div class="progress">
+                <div class="progress-bar bg-warning" style="width: 65%"></div>
+              </div>
+            </div>
+            <div class="progress-stat">
+              <div class="progress-label">
+                <span><i class="fas fa-warehouse"></i> Warehouses</span>
+                <span><strong>78%</strong></span>
+              </div>
+              <div class="progress">
+                <div class="progress-bar bg-info" style="width: 78%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+    <script>
+      // Sample data
+      const dashboardData = {
+        total: 342,
+        pending: 28,
+        approved: 289,
+        rejected: 25,
+      };
+
+      // Update statistics with animation
+      function animateValue(id, start, end, duration) {
+        const obj = document.getElementById(id);
+        const range = end - start;
+        const increment = end > start ? 1 : -1;
+        const stepTime = Math.abs(Math.floor(duration / range));
+        let current = start;
+
+        const timer = setInterval(() => {
+          current += increment;
+          obj.textContent = current;
+          if (current === end) {
+            clearInterval(timer);
+          }
+        }, stepTime);
+      }
+
+      // Set current date
+      document.getElementById("currentDate").textContent =
+        new Date().toLocaleDateString("en-US", {
+          weekday: "long",
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        });
+
+      // Animate statistics
+      animateValue("totalEstablishments", 0, dashboardData.total, 1500);
+      animateValue("pendingEstablishments", 0, dashboardData.pending, 1500);
+      animateValue("approvedEstablishments", 0, dashboardData.approved, 1500);
+      animateValue("rejectedEstablishments", 0, dashboardData.rejected, 1500);
+
+      // Business Type Chart
+      const businessTypeCtx = document
+        .getElementById("businessTypeChart")
+        .getContext("2d");
+      new Chart(businessTypeCtx, {
+        type: "doughnut",
+        data: {
+          labels: [
+            "Hotels",
+            "Shopping Malls",
+            "Restaurants",
+            "Office Buildings",
+            "Warehouses",
+            "Others",
+          ],
+          datasets: [
+            {
+              data: [65, 45, 89, 52, 38, 53],
+              backgroundColor: [
+                "#dc3545",
+                "#ffc107",
+                "#28a745",
+                "#007bff",
+                "#6c757d",
+                "#17a2b8",
+              ],
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          plugins: {
+            legend: {
+              position: "bottom",
+            },
+          },
+        },
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,275 @@
+@import url("../components/variables.css");
+
+body {
+  background-color: var(--bfp-light);
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.main-content {
+  margin-left: 250px;
+  padding: 0;
+}
+
+.content-area {
+  padding: 30px;
+}
+
+.overview-section h2 {
+  color: var(--bfp-dark);
+  margin-bottom: 5px;
+}
+
+.overview-section p {
+  color: #666;
+  margin-bottom: 30px;
+}
+
+.action-buttons {
+  margin-bottom: 30px;
+}
+
+.btn-new-inspection {
+  background: var(--bfp-red);
+  color: white;
+  border: none;
+}
+
+.btn-generate-report {
+  background: var(--bfp-dark);
+  color: white;
+  border: none;
+}
+
+.stats-card {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border-left: 4px solid;
+  margin-bottom: 20px;
+  position: relative;
+}
+
+.stats-card.pending {
+  border-left-color: var(--bfp-red);
+}
+
+.stats-card.approved {
+  border-left-color: #17a2b8;
+}
+
+.stats-card.ongoing {
+  border-left-color: var(--bfp-gold);
+}
+
+.stats-card.reports {
+  border-left-color: #6f42c1;
+}
+
+.stats-card.compliant {
+  border-left-color: #28a745;
+}
+
+.stats-card.non-compliant {
+  border-left-color: var(--bfp-red);
+}
+
+.stats-card .card-icon {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 16px;
+}
+
+.stats-card.pending .card-icon {
+  background: var(--bfp-red);
+}
+
+.stats-card.approved .card-icon {
+  background: #17a2b8;
+}
+
+.stats-card.ongoing .card-icon {
+  background: var(--bfp-gold);
+}
+
+.stats-card.reports .card-icon {
+  background: #6f42c1;
+}
+
+.stats-card.compliant .card-icon {
+  background: #28a745;
+}
+
+.stats-card.non-compliant .card-icon {
+  background: var(--bfp-red);
+}
+
+.stats-card h6 {
+  color: #666;
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+
+.stats-card h3 {
+  font-size: 36px;
+  font-weight: bold;
+  color: var(--bfp-dark);
+  margin-bottom: 5px;
+}
+
+.stats-card .trend {
+  font-size: 12px;
+  color: #666;
+}
+
+.system-notice {
+  background: #fff3cd;
+  border: 1px solid #ffeaa7;
+  border-radius: 8px;
+  padding: 15px;
+  margin: 20px 0;
+}
+
+.system-notice .notice-icon {
+  color: var(--bfp-gold);
+  margin-right: 10px;
+}
+
+.notice-actions {
+  margin-top: 15px;
+}
+
+.chart-container {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+  height: 100%;
+}
+
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.col-lg-4 {
+  display: flex;
+  flex-direction: column;
+  max-height: 100%;
+}
+
+.activity-feed {
+  display: flex;
+  flex-direction: column;
+  flex: 1; /* allow it to expand */
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  overflow: hidden; /* keep children contained */
+}
+
+.activities-cont {
+  flex: 1; /* take remaining space inside activity-feed */
+  overflow-y: auto; /* scrollable */
+  padding-right: 5px; /* avoids scrollbar overlap */
+}
+
+.activity-item {
+  display: flex;
+  align-items: center;
+  padding: 15px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.activity-item:last-child {
+  border-bottom: none;
+}
+
+.activity-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 15px;
+  color: white;
+}
+
+.activity-icon.success {
+  background: #28a745;
+}
+
+.activity-icon.warning {
+  background: var(--bfp-gold);
+}
+
+.activity-icon.danger {
+  background: var(--bfp-red);
+}
+
+.activity-icon.info {
+  background: #17a2b8;
+}
+
+.activity-content {
+  flex-grow: 1;
+}
+
+.activity-content h6 {
+  margin-bottom: 5px;
+  color: var(--bfp-dark);
+}
+
+.activity-content p {
+  margin-bottom: 2px;
+  color: #666;
+  font-size: 14px;
+}
+
+.activity-time {
+  font-size: 12px;
+  color: #999;
+}
+
+#map {
+  height: 400px;
+  width: 100%;
+  border-radius: 10px;
+}
+
+.map-container {
+  background: white;
+  border-radius: 10px;
+  padding: 25px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+  width: 100%;
+}
+
+.map-controls {
+  margin-bottom: 15px;
+}
+
+@media (max-width: 768px) {
+  .main-content {
+    margin-left: 0;
+  }
+
+  .content-area {
+    padding: 15px;
+  }
+}
+
