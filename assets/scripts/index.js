@@ -36,7 +36,7 @@ document.getElementById("loginForm").addEventListener("submit", function (e) {
         button.style.background =
           "linear-gradient(135deg, #28a745 0%, #1e7e34 100%)";
           setTimeout(() => {
-            window.location.href = "./user/dashboard.php";
+            window.location.href = "./owner/dashboard.php";
           }, 1000)
         
       } else if (j.success && j.role.toLowerCase() == "inspector") {

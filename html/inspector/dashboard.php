@@ -39,7 +39,7 @@ include '../../utility/inspectorDasboard.php';
 
     <nav class="sidebar-nav">
       <div class="nav-item">
-        <a href="#" class="nav-link active">
+        <a href="./dashboard.php" class="nav-link active">
           <i class="fas fa-tachometer-alt"></i>
           Dashboard
         </a>
@@ -54,12 +54,6 @@ include '../../utility/inspectorDasboard.php';
         <a href="./report-findings.php" class="nav-link">
           <i class="fas fa-calendar-check"></i>
           Report Findings
-        </a>
-      </div>
-      <div class="nav-item">
-        <a href="./gis-map.php" class="nav-link">
-          <i class="fas fa-map-marker-alt"></i>
-          GIS Map
         </a>
       </div>
 
@@ -151,14 +145,6 @@ include '../../utility/inspectorDasboard.php';
       </div>
     </div>
 
-    <!-- GIS Map -->
-    <div class="map-container">
-      <h4 class="mb-3">
-        <i class="fas fa-map-marker-alt text-danger me-2"></i>
-        GIS Map: Inspection Sites
-      </h4>
-      <div id="map"></div>
-    </div>
   </div>
 
   <!-- Scheduled Inspections Modal -->
@@ -434,127 +420,8 @@ include '../../utility/inspectorDasboard.php';
   </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  
   <script>
-    // Initialize Map
-    var map = L.map("map").setView([13.5833, 124.2374], 11);
-
-
-    // Add OpenStreetMap tiles
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: "© OpenStreetMap contributors",
-    }).addTo(map);
-
-    // Sample inspection sites in Metro Manila
-    var inspectionSites = [{
-        lat: 13.5843,
-        lng: 124.2397,
-        name: "Virac Town Center",
-        status: "scheduled",
-      },
-      {
-        lat: 13.5967,
-        lng: 124.2303,
-        name: "Catanduanes State University",
-        status: "scheduled",
-      },
-      {
-        lat: 13.5951,
-        lng: 124.2458,
-        name: "Virac Cathedral",
-        status: "scheduled",
-      },
-      {
-        lat: 13.6537,
-        lng: 124.3731,
-        name: "Binurong Point, Baras",
-        status: "ongoing",
-      },
-      {
-        lat: 13.6444,
-        lng: 124.3812,
-        name: "Puraran Beach, Baras",
-        status: "ongoing",
-      },
-      {
-        lat: 13.6123,
-        lng: 124.3288,
-        name: "Bato Church",
-        status: "completed",
-      },
-      {
-        lat: 13.5767,
-        lng: 124.2884,
-        name: "Maribina Falls, Bato",
-        status: "completed",
-      },
-      {
-        lat: 13.6914,
-        lng: 124.3837,
-        name: "Balacay Point, Baras",
-        status: "completed",
-      },
-      {
-        lat: 13.7215,
-        lng: 124.3089,
-        name: "Padis Point View Deck, Gigmoto",
-        status: "completed",
-      },
-      {
-        lat: 13.7128,
-        lng: 124.1071,
-        name: "PAGASA Weather Radar Station, San Andres",
-        status: "pending",
-      },
-      {
-        lat: 13.8534,
-        lng: 124.3097,
-        name: "Pandan Beach Resort, Pandan",
-        status: "pending",
-      }
-    ];
-
-    // Add markers to map
-    inspectionSites.forEach(function(site) {
-      var iconColor = "red";
-      var iconName = "exclamation";
-
-      switch (site.status) {
-        case "scheduled":
-          iconColor = "blue";
-          iconName = "calendar";
-          break;
-        case "ongoing":
-          iconColor = "orange";
-          iconName = "clock";
-          break;
-        case "completed":
-          iconColor = "green";
-          iconName = "check";
-          break;
-        case "pending":
-          iconColor = "red";
-          iconName = "exclamation-triangle";
-          break;
-      }
-
-      var marker = L.marker([site.lat, site.lng]).addTo(map);
-      marker.bindPopup(`
-                <div class="text-center">
-                    <h6>${site.name}</h6>
-                    <p class="mb-1">Status: <span class="badge badge-${
-                      site.status
-                    }">${site.status.charAt(0).toUpperCase() + site.status.slice(1)}</span></p>
-                    <button class="btn btn-sm btn-bfp mt-2">View Details</button>
-                </div>
-            `);
-    });
-
-    // Toggle sidebar for mobile
-    function toggleSidebar() {
-      document.getElementById("sidebar").classList.toggle("show");
-    }
-
     // Add click handlers for stat cards
     document.addEventListener("DOMContentLoaded", function() {
       // Update time every second

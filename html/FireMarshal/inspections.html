@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BFP Fire Marshal - Certificate Authorization</title>
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="../../assets/styles/components/sidebar.css" />
+    <style>
+      :root {
+        --bfp-red: #dc3545;
+        --bfp-dark-red: #a02834;
+        --bfp-gold: #ffc107;
+        --bfp-dark: #1a1a1a;
+        --bfp-light: #f8f9fa;
+      }
+
+      body {
+        background-color: var(--bfp-light);
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      }
+
+      .header {
+        background: linear-gradient(
+          135deg,
+          var(--bfp-red) 0%,
+          var(--bfp-dark-red) 100%
+        );
+        color: white;
+        padding: 2rem;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+
+      .header h1 {
+        font-weight: 700;
+        margin: 0;
+      }
+
+      .header p {
+        margin: 0.5rem 0 0 0;
+        opacity: 0.9;
+      }
+
+      .main-content {
+        padding: 2rem 20px;
+        padding-left: 270px;
+      }
+
+      .stats-card {
+        background: white;
+        border-radius: 10px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        border-left: 4px solid var(--bfp-red);
+      }
+
+      .stats-card h3 {
+        color: var(--bfp-dark);
+        font-size: 2rem;
+        margin: 0;
+      }
+
+      .stats-card p {
+        color: #6c757d;
+        margin: 0.5rem 0 0 0;
+      }
+
+      .table-container {
+        background: white;
+        border-radius: 10px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      .table thead {
+        background-color: var(--bfp-red);
+        color: white;
+      }
+
+      .table thead th {
+        border: none;
+        font-weight: 600;
+      }
+
+      .badge-compliant {
+        background-color: #28a745;
+      }
+
+      .badge-non-compliant {
+        background-color: var(--bfp-red);
+      }
+
+      .badge-paid {
+        background-color: var(--bfp-gold);
+        color: var(--bfp-dark);
+      }
+
+      .badge-unpaid {
+        background-color: #6c757d;
+      }
+
+      .btn-view {
+        background-color: var(--bfp-red);
+        color: white;
+        border: none;
+      }
+
+      .btn-view:hover {
+        background-color: var(--bfp-dark-red);
+        color: white;
+      }
+
+      .modal-header {
+        background: linear-gradient(
+          135deg,
+          var(--bfp-red) 0%,
+          var(--bfp-dark-red) 100%
+        );
+        color: white;
+      }
+
+      .modal-header .btn-close {
+        filter: brightness(0) invert(1);
+      }
+
+      .info-group {
+        margin-bottom: 1.5rem;
+      }
+
+      .info-label {
+        font-weight: 600;
+        color: var(--bfp-dark);
+        margin-bottom: 0.5rem;
+      }
+
+      .info-value {
+        color: #495057;
+        padding: 0.5rem;
+        background-color: var(--bfp-light);
+        border-radius: 5px;
+      }
+
+      #map {
+        height: 300px;
+        border-radius: 10px;
+        margin-top: 1rem;
+      }
+
+      .btn-authorize {
+        background-color: #28a745;
+        color: white;
+        border: none;
+        padding: 0.75rem 2rem;
+        font-weight: 600;
+      }
+
+      .btn-authorize:hover {
+        background-color: #218838;
+        color: white;
+      }
+
+      .btn-deny {
+        background-color: var(--bfp-red);
+        color: white;
+        border: none;
+        padding: 0.75rem 2rem;
+        font-weight: 600;
+      }
+
+      .btn-deny:hover {
+        background-color: var(--bfp-dark-red);
+        color: white;
+      }
+
+      .action-buttons {
+        margin-top: 2rem;
+        padding-top: 1.5rem;
+        border-top: 2px solid var(--bfp-light);
+      }
+
+      .search-box {
+        margin-bottom: 1.5rem;
+      }
+
+      .filter-badge {
+        cursor: pointer;
+        margin: 0.25rem;
+      }
+
+      @media (max-width: 768px) {
+        .table-responsive {
+          font-size: 0.875rem;
+        }
+        .main-content {
+          padding-left: 20px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+      <div class="logo-section">
+        <div class="logo">
+          <i
+            class="fas fa-shield-alt"
+            style="color: var(--bfp-red); font-size: 24px"
+          ></i>
+        </div>
+        <h5 class="mb-0">BFP SiteProfiler</h5>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-item">
+          <a href="#" class="nav-link active">
+            <i class="fas fa-tachometer-alt"></i>
+            Dashboard
+          </a>
+        </div>
+      </nav>
+
+      <div class="nav-item">
+        <a href="../index.php" class="nav-link">
+          <i class="fas fa-sign-out-alt"></i>
+          Logout
+        </a>
+      </div>
+    </div>
+
+    <div class="main-content">
+      <div class="header mb-4">
+        <div class="row align-items-center">
+          <div class="col-md-8">
+            <h1><i class="fas fa-fire-alt"></i> BFP Fire Marshal Dashboard</h1>
+            <p>Certificate Release Authorization</p>
+          </div>
+          <div class="col-md-4 text-md-end mt-3 mt-md-0">
+            <span class="badge bg-light text-dark fs-6">Fire Marshal</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-4">
+          <div class="stats-card">
+            <h3 id="totalInspections">0</h3>
+            <p>Total Inspections</p>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="stats-card">
+            <h3 id="pendingAuth">0</h3>
+            <p>Pending Authorization</p>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="stats-card">
+            <h3 id="compliantCount">0</h3>
+            <p>Compliant Establishments</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="table-container">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h4 class="mb-0">Inspection Records</h4>
+          <div>
+            <span
+              class="badge filter-badge badge-compliant"
+              onclick="filterTable('compliant')"
+              >Compliant</span
+            >
+            <span
+              class="badge filter-badge badge-non-compliant"
+              onclick="filterTable('non-compliant')"
+              >Non-Compliant</span
+            >
+            <span
+              class="badge filter-badge bg-secondary"
+              onclick="filterTable('all')"
+              >All</span
+            >
+          </div>
+        </div>
+
+        <div class="search-box">
+          <input
+            type="text"
+            class="form-control"
+            id="searchInput"
+            placeholder="Search by business name, owner, or registration number..."
+          />
+        </div>
+
+        <div class="table-responsive">
+          <table class="table table-hover">
+            <thead>
+              <tr>
+                <th>Registration No.</th>
+                <th>Business Name</th>
+                <th>Owner Name</th>
+                <th>Status</th>
+                <th>Payment</th>
+                <th>Authorization</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="inspectionTable">
+              <!-- Data will be populated by JavaScript -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Inspection Details Modal -->
+    <div class="modal fade" id="inspectionModal" tabindex="-1">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">
+              <i class="fas fa-file-alt"></i> Inspection Details
+            </h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <div class="row">
+              <div class="col-md-6">
+                <div class="info-group">
+                  <div class="info-label">Owner Name</div>
+                  <div class="info-value" id="modalOwnerName"></div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="info-group">
+                  <div class="info-label">Business Name</div>
+                  <div class="info-value" id="modalBusinessName"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-6">
+                <div class="info-group">
+                  <div class="info-label">BFP Registration No.</div>
+                  <div class="info-value" id="modalRegNo"></div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="info-group">
+                  <div class="info-label">Business Type</div>
+                  <div class="info-value" id="modalBusinessType"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="info-group">
+              <div class="info-label">Address</div>
+              <div class="info-value" id="modalAddress"></div>
+            </div>
+
+            <div class="info-group">
+              <div class="info-label">Coordinates & Location</div>
+              <div class="info-value">
+                <strong>Latitude:</strong> <span id="modalLat"></span> |
+                <strong>Longitude:</strong> <span id="modalLng"></span>
+              </div>
+              <div id="map"></div>
+            </div>
+
+            <div class="info-group">
+              <div class="info-label">Defects/Deficiencies</div>
+              <div class="info-value" id="modalDefects"></div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-4">
+                <div class="info-group">
+                  <div class="info-label">Grace Period</div>
+                  <div class="info-value" id="modalGracePeriod"></div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="info-group">
+                  <div class="info-label">Compliance Status</div>
+                  <div class="info-value" id="modalStatus"></div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="info-group">
+                  <div class="info-label">Payment Status</div>
+                  <div class="info-value" id="modalPayment"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="action-buttons text-center">
+              <h5 class="mb-3">Certificate Release Authorization</h5>
+              <div id="authorizationStatus"></div>
+              <div id="authorizationButtons">
+                <button
+                  class="btn btn-authorize me-2"
+                  onclick="authorizeCertificate()"
+                >
+                  <i class="fas fa-check-circle"></i> Authorize Certificate
+                  Release
+                </button>
+                <button class="btn btn-deny" onclick="denyCertificate()">
+                  <i class="fas fa-times-circle"></i> Deny Authorization
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <script src="../../assets/scripts/components/sidebar.js"></script>
+    <script>
+      let map;
+      let marker;
+      let currentInspectionId;
+      let inspections = [
+        {
+          id: 1,
+          regNo: "BFP-2025-001",
+          businessName: "Metro Shopping Mall",
+          ownerName: "Juan dela Cruz",
+          businessType: "Shopping Center",
+          address: "Main Street, Masbate City, Masbate",
+          lat: 12.3685,
+          lng: 123.6174,
+          defects: "None - All fire safety equipment operational",
+          gracePeriod: "N/A",
+          status: "compliant",
+          payment: "paid",
+          authorized: null,
+        },
+        {
+          id: 2,
+          regNo: "BFP-2025-002",
+          businessName: "Sunrise Hotel & Restaurant",
+          ownerName: "Maria Santos",
+          businessType: "Hotel",
+          address: "Quezon Street, Masbate City, Masbate",
+          lat: 12.365,
+          lng: 123.62,
+          defects:
+            "Missing fire extinguisher on 3rd floor, Emergency exit signage not illuminated",
+          gracePeriod: "30 days (Until Nov 22, 2025)",
+          status: "non-compliant",
+          payment: "unpaid",
+          authorized: null,
+        },
+        {
+          id: 3,
+          regNo: "BFP-2025-003",
+          businessName: "TechHub Coworking Space",
+          ownerName: "Pedro Reyes",
+          businessType: "Office Space",
+          address: "Rizal Avenue, Masbate City, Masbate",
+          lat: 12.37,
+          lng: 123.615,
+          defects: "None - All requirements met",
+          gracePeriod: "N/A",
+          status: "compliant",
+          payment: "paid",
+          authorized: null,
+        },
+        {
+          id: 4,
+          regNo: "BFP-2025-004",
+          businessName: "Golden Dragon Restaurant",
+          ownerName: "Li Wei Chen",
+          businessType: "Restaurant",
+          address: "Bonifacio Street, Masbate City, Masbate",
+          lat: 12.372,
+          lng: 123.618,
+          defects: "Kitchen fire suppression system needs maintenance",
+          gracePeriod: "15 days (Until Nov 7, 2025)",
+          status: "non-compliant",
+          payment: "paid",
+          authorized: null,
+        },
+        {
+          id: 5,
+          regNo: "BFP-2025-005",
+          businessName: "Masbate General Hospital",
+          ownerName: "Dr. Rosa Martinez",
+          businessType: "Hospital",
+          address: "Provincial Road, Masbate City, Masbate",
+          lat: 12.366,
+          lng: 123.622,
+          defects: "None - Fully compliant with hospital safety standards",
+          gracePeriod: "N/A",
+          status: "compliant",
+          payment: "paid",
+          authorized: null,
+        },
+      ];
+
+      function renderTable() {
+        const tbody = document.getElementById("inspectionTable");
+        tbody.innerHTML = "";
+
+        inspections.forEach((inspection) => {
+          const statusBadge =
+            inspection.status === "compliant"
+              ? '<span class="badge badge-compliant">Compliant</span>'
+              : '<span class="badge badge-non-compliant">Non-Compliant</span>';
+
+          const paymentBadge =
+            inspection.payment === "paid"
+              ? '<span class="badge badge-paid">Paid</span>'
+              : '<span class="badge badge-unpaid">Unpaid</span>';
+
+          let authBadge = '<span class="badge bg-secondary">Pending</span>';
+          if (inspection.authorized === true) {
+            authBadge = '<span class="badge bg-success">Authorized</span>';
+          } else if (inspection.authorized === false) {
+            authBadge = '<span class="badge bg-danger">Denied</span>';
+          }
+
+          const row = `
+                    <tr>
+                        <td>${inspection.regNo}</td>
+                        <td>${inspection.businessName}</td>
+                        <td>${inspection.ownerName}</td>
+                        <td>${statusBadge}</td>
+                        <td>${paymentBadge}</td>
+                        <td>${authBadge}</td>
+                        <td>
+                            <button class="btn btn-view btn-sm" onclick="viewInspection(${inspection.id})">
+                                <i class="fas fa-eye"></i> View
+                            </button>
+                        </td>
+                    </tr>
+                `;
+          tbody.innerHTML += row;
+        });
+
+        updateStats();
+      }
+
+      function updateStats() {
+        document.getElementById("totalInspections").textContent =
+          inspections.length;
+        document.getElementById("pendingAuth").textContent = inspections.filter(
+          (i) => i.authorized === null
+        ).length;
+        document.getElementById("compliantCount").textContent =
+          inspections.filter((i) => i.status === "compliant").length;
+      }
+
+      function viewInspection(id) {
+        const inspection = inspections.find((i) => i.id === id);
+        currentInspectionId = id;
+
+        document.getElementById("modalOwnerName").textContent =
+          inspection.ownerName;
+        document.getElementById("modalBusinessName").textContent =
+          inspection.businessName;
+        document.getElementById("modalRegNo").textContent = inspection.regNo;
+        document.getElementById("modalBusinessType").textContent =
+          inspection.businessType;
+        document.getElementById("modalAddress").textContent =
+          inspection.address;
+        document.getElementById("modalLat").textContent = inspection.lat;
+        document.getElementById("modalLng").textContent = inspection.lng;
+        document.getElementById("modalDefects").textContent =
+          inspection.defects;
+        document.getElementById("modalGracePeriod").textContent =
+          inspection.gracePeriod;
+
+        const statusBadge =
+          inspection.status === "compliant"
+            ? '<span class="badge badge-compliant">Compliant</span>'
+            : '<span class="badge badge-non-compliant">Non-Compliant</span>';
+        document.getElementById("modalStatus").innerHTML = statusBadge;
+
+        const paymentBadge =
+          inspection.payment === "paid"
+            ? '<span class="badge badge-paid">Paid</span>'
+            : '<span class="badge badge-unpaid">Unpaid</span>';
+        document.getElementById("modalPayment").innerHTML = paymentBadge;
+
+        // Show authorization status or buttons
+        const authStatus = document.getElementById("authorizationStatus");
+        const authButtons = document.getElementById("authorizationButtons");
+
+        if (inspection.authorized === true) {
+          authStatus.innerHTML =
+            '<div class="alert alert-success"><i class="fas fa-check-circle"></i> Certificate Release Authorized</div>';
+          authButtons.style.display = "none";
+        } else if (inspection.authorized === false) {
+          authStatus.innerHTML =
+            '<div class="alert alert-danger"><i class="fas fa-times-circle"></i> Certificate Release Denied</div>';
+          authButtons.style.display = "none";
+        } else {
+          authStatus.innerHTML = "";
+          authButtons.style.display = "block";
+        }
+
+        // Initialize map
+        const modal = new bootstrap.Modal(
+          document.getElementById("inspectionModal")
+        );
+        modal.show();
+
+        setTimeout(() => {
+          if (map) {
+            map.remove();
+          }
+          map = L.map("map").setView([inspection.lat, inspection.lng], 15);
+          L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            attribution: "© OpenStreetMap contributors",
+          }).addTo(map);
+          marker = L.marker([inspection.lat, inspection.lng]).addTo(map);
+          marker
+            .bindPopup(
+              `<b>${inspection.businessName}</b><br>${inspection.address}`
+            )
+            .openPopup();
+        }, 200);
+      }
+
+      function authorizeCertificate() {
+        const inspection = inspections.find(
+          (i) => i.id === currentInspectionId
+        );
+        inspection.authorized = true;
+
+        const authStatus = document.getElementById("authorizationStatus");
+        const authButtons = document.getElementById("authorizationButtons");
+
+        authStatus.innerHTML =
+          '<div class="alert alert-success"><i class="fas fa-check-circle"></i> Certificate Release Authorized Successfully!</div>';
+        authButtons.style.display = "none";
+
+        renderTable();
+      }
+
+      function denyCertificate() {
+        const inspection = inspections.find(
+          (i) => i.id === currentInspectionId
+        );
+        inspection.authorized = false;
+
+        const authStatus = document.getElementById("authorizationStatus");
+        const authButtons = document.getElementById("authorizationButtons");
+
+        authStatus.innerHTML =
+          '<div class="alert alert-danger"><i class="fas fa-times-circle"></i> Certificate Release Denied</div>';
+        authButtons.style.display = "none";
+
+        renderTable();
+      }
+
+      function filterTable(filter) {
+        const rows = document.querySelectorAll("#inspectionTable tr");
+        rows.forEach((row) => {
+          if (filter === "all") {
+            row.style.display = "";
+          } else if (filter === "compliant") {
+            row.style.display = row.innerHTML.includes("badge-compliant")
+              ? ""
+              : "none";
+          } else if (filter === "non-compliant") {
+            row.style.display = row.innerHTML.includes("badge-non-compliant")
+              ? ""
+              : "none";
+          }
+        });
+      }
+
+      document
+        .getElementById("searchInput")
+        .addEventListener("input", function (e) {
+          const searchTerm = e.target.value.toLowerCase();
+          const rows = document.querySelectorAll("#inspectionTable tr");
+
+          rows.forEach((row) => {
+            const text = row.textContent.toLowerCase();
+            row.style.display = text.includes(searchTerm) ? "" : "none";
+          });
+        });
+
+      // Initialize table on load
+      renderTable();
+    </script>
+  </body>
+</html>

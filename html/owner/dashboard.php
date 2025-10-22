@@ -39,7 +39,7 @@
 
       <nav class="sidebar-nav">
         <div class="nav-item">
-          <a href="./dashboard.php" class="nav-link">
+          <a href="./dashboard.php" class="nav-link active">
             <i class="fas fa-tachometer-alt"></i>
             Dashboard
           </a>
@@ -51,7 +51,7 @@
           </a>
         </div>
         <div class="nav-item">
-          <a href="./certificates.php" class="nav-link active">
+          <a href="./certificates.php" class="nav-link ">
             <i class="fas fa-calendar-check"></i>
             Certificates
           </a>

@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BFP Site Profiler Accessor</title>
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../../assets/styles/components/sidebar.css" />
+    <style>
+      :root {
+        --bfp-red: #dc3545;
+        --bfp-dark-red: #a02834;
+        --bfp-gold: #ffc107;
+        --bfp-dark: #1a1a1a;
+        --bfp-light: #f8f9fa;
+      }
+
+      body {
+        background-color: var(--bfp-light);
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      }
+
+      .main-content {
+        padding: 1rem 20px;
+        padding-left: 270px;
+      }
+
+      .header {
+        background: linear-gradient(
+          135deg,
+          var(--bfp-red) 0%,
+          var(--bfp-dark-red) 100%
+        );
+        color: white;
+        padding: 2rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        border-radius: 10px;
+      }
+
+      .header h1 {
+        font-weight: bold;
+        margin: 0;
+      }
+
+      .header .logo {
+        width: 60px;
+        height: 60px;
+        background: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        color: var(--bfp-red);
+      }
+
+      .search-box {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        margin: 2rem 0;
+      }
+
+      .table-container {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      .btn-bfp {
+        background-color: var(--bfp-red);
+        color: white;
+        border: none;
+      }
+
+      .btn-bfp:hover {
+        background-color: var(--bfp-dark-red);
+        color: white;
+      }
+
+      .btn-view {
+        background-color: var(--bfp-gold);
+        color: var(--bfp-dark);
+        border: none;
+        font-weight: 600;
+      }
+
+      .btn-view:hover {
+        background-color: #e0a800;
+        color: var(--bfp-dark);
+      }
+
+      .modal-header {
+        background: linear-gradient(
+          135deg,
+          var(--bfp-red) 0%,
+          var(--bfp-dark-red) 100%
+        );
+        color: white;
+      }
+
+      .info-label {
+        font-weight: 600;
+        color: var(--bfp-dark-red);
+        margin-bottom: 0.25rem;
+      }
+
+      .info-value {
+        color: var(--bfp-dark);
+        margin-bottom: 1rem;
+        padding: 0.5rem;
+        background-color: var(--bfp-light);
+        border-radius: 5px;
+      }
+
+      .defects-box {
+        background-color: #fff3cd;
+        border-left: 4px solid var(--bfp-gold);
+        padding: 1rem;
+        border-radius: 5px;
+      }
+
+      .grace-period-box {
+        background-color: #f8d7da;
+        border-left: 4px solid var(--bfp-red);
+        padding: 1rem;
+        border-radius: 5px;
+      }
+
+      .payment-section {
+        background-color: #d1ecf1;
+        border-left: 4px solid #17a2b8;
+        padding: 1.5rem;
+        border-radius: 5px;
+        margin-top: 1rem;
+      }
+
+      .table-hover tbody tr:hover {
+        background-color: rgba(220, 53, 69, 0.05);
+      }
+
+      .badge-status {
+        font-size: 0.85rem;
+        padding: 0.4rem 0.8rem;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+      <div class="logo-section">
+        <div class="logo">
+          <i
+            class="fas fa-shield-alt"
+            style="color: var(--bfp-red); font-size: 24px"
+          ></i>
+        </div>
+        <h5 class="mb-0">BFP SiteProfiler</h5>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-item">
+          <a href="./dashboard.php" class="nav-link active">
+            <i class="fas fa-tachometer-alt"></i>
+            Dashboard
+          </a>
+        </div>
+      </nav>
+
+      <div class="nav-item">
+        <a href="../index.php" class="nav-link">
+          <i class="fas fa-sign-out-alt"></i>
+          Logout
+        </a>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content my-4">
+      <!-- Search Box -->
+      <div class="header">
+        <div class="container">
+          <div class="row align-items-center">
+            <div class="col-auto">
+              <div class="logo">
+                <i class="fas fa-fire-extinguisher"></i>
+              </div>
+            </div>
+            <div class="col">
+              <h1>Bureau of Fire Protection</h1>
+              <p class="mb-0">
+                Site Profiler Accessor - Fire Code Fee Management
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="search-box">
+        <div class="row align-items-center">
+          <div class="col-md-10">
+            <div class="input-group">
+              <span class="input-group-text"
+                ><i class="fas fa-search"></i
+              ></span>
+              <input
+                type="text"
+                class="form-control"
+                id="searchInput"
+                placeholder="Search by owner name or establishment name..."
+              />
+            </div>
+          </div>
+          <div class="col-md-2 mt-2 mt-md-0">
+            <button class="btn btn-bfp w-100" onclick="searchTable()">
+              <i class="fas fa-search"></i> Search
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="table-container">
+        <h4 class="mb-3">
+          <i class="fas fa-clipboard-list"></i> Inspected Establishments
+        </h4>
+        <div class="table-responsive">
+          <table class="table table-hover" id="establishmentsTable">
+            <thead class="table-dark">
+              <tr>
+                <th>Owner Name</th>
+                <th>Business Name</th>
+                <th>Business Type</th>
+                <th>Date Inspected</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody">
+              <!-- Sample Data -->
+              <tr>
+                <td>Juan Dela Cruz</td>
+                <td>Dela Cruz Restaurant</td>
+                <td>Food Service</td>
+                <td>2025-10-15</td>
+                <td>
+                  <span class="badge bg-warning badge-status"
+                    >Pending Payment</span
+                  >
+                </td>
+                <td>
+                  <button class="btn btn-view btn-sm" onclick="viewDetails(0)">
+                    <i class="fas fa-eye"></i> View
+                  </button>
+                </td>
+              </tr>
+              <tr>
+                <td>Maria Santos</td>
+                <td>Santos Hardware Store</td>
+                <td>Retail</td>
+                <td>2025-10-18</td>
+                <td>
+                  <span class="badge bg-warning badge-status"
+                    >Pending Payment</span
+                  >
+                </td>
+                <td>
+                  <button class="btn btn-view btn-sm" onclick="viewDetails(1)">
+                    <i class="fas fa-eye"></i> View
+                  </button>
+                </td>
+              </tr>
+              <tr>
+                <td>Pedro Reyes</td>
+                <td>Reyes Hotel</td>
+                <td>Accommodation</td>
+                <td>2025-10-20</td>
+                <td>
+                  <span class="badge bg-warning badge-status"
+                    >Pending Payment</span
+                  >
+                </td>
+                <td>
+                  <button class="btn btn-view btn-sm" onclick="viewDetails(2)">
+                    <i class="fas fa-eye"></i> View
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal fade" id="detailsModal" tabindex="-1">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">
+              <i class="fas fa-file-alt"></i> Establishment Details & Fee
+              Assessment
+            </h5>
+            <button
+              type="button"
+              class="btn-close btn-close-white"
+              data-bs-dismiss="modal"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <div class="row">
+              <div class="col-md-6">
+                <div class="info-label">Owner Name:</div>
+                <div class="info-value" id="modalOwnerName"></div>
+              </div>
+              <div class="col-md-6">
+                <div class="info-label">Business Name:</div>
+                <div class="info-value" id="modalBusinessName"></div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-6">
+                <div class="info-label">Business Type:</div>
+                <div class="info-value" id="modalBusinessType"></div>
+              </div>
+              <div class="col-md-6">
+                <div class="info-label">Date of Inspection:</div>
+                <div class="info-value" id="modalInspectionDate"></div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-12">
+                <div class="info-label">Address:</div>
+                <div class="info-value" id="modalAddress"></div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-6">
+                <div class="info-label">Inspector 1:</div>
+                <div class="info-value" id="modalInspector1"></div>
+              </div>
+              <div class="col-md-6">
+                <div class="info-label">Inspector 2:</div>
+                <div class="info-value" id="modalInspector2"></div>
+              </div>
+            </div>
+
+            <div class="row mt-3">
+              <div class="col-12">
+                <div class="defects-box">
+                  <div class="info-label">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Defects/Deficiencies:
+                  </div>
+                  <div id="modalDefects"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="row mt-3">
+              <div class="col-12">
+                <div class="grace-period-box">
+                  <div class="info-label">
+                    <i class="fas fa-clock"></i> Grace Period:
+                  </div>
+                  <div id="modalGracePeriod"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="row mt-3">
+              <div class="col-12">
+                <div class="payment-section">
+                  <h5 class="mb-3">
+                    <i class="fas fa-money-bill-wave"></i> Fire Code Fee Payment
+                  </h5>
+                  <div class="mb-3">
+                    <label for="totalPayment" class="form-label fw-bold"
+                      >Total Payment (₱):</label
+                    >
+                    <input
+                      type="number"
+                      class="form-control"
+                      id="totalPayment"
+                      placeholder="Enter total payment amount"
+                      step="0.01"
+                      min="0"
+                    />
+                  </div>
+                  <button class="btn btn-bfp w-100" onclick="updateOwner()">
+                    <i class="fas fa-save"></i> Update Owner Payment
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script>
+      // Sample data
+      const establishments = [
+        {
+          ownerName: "Juan Dela Cruz",
+          businessName: "Dela Cruz Restaurant",
+          businessType: "Food Service",
+          address: "123 Main St, Masbate City, Masbate",
+          inspector1: "SFO2 Mark Johnson",
+          inspector2: "FO1 Anna Garcia",
+          inspectionDate: "2025-10-15",
+          defects:
+            "Missing fire extinguisher in kitchen area. Emergency exit signs not illuminated. Fire alarm system needs maintenance.",
+          gracePeriod: "30 days from inspection date (Until November 14, 2025)",
+          status: "Pending Payment",
+        },
+        {
+          ownerName: "Maria Santos",
+          businessName: "Santos Hardware Store",
+          businessType: "Retail",
+          address: "456 Commerce Ave, Masbate City, Masbate",
+          inspector1: "SFO1 Robert Lee",
+          inspector2: "FO2 Carmen Torres",
+          inspectionDate: "2025-10-18",
+          defects:
+            "Electrical wiring not properly insulated. Flammable materials stored near heat source. Exit pathway obstructed.",
+          gracePeriod: "45 days from inspection date (Until December 2, 2025)",
+          status: "Pending Payment",
+        },
+        {
+          ownerName: "Pedro Reyes",
+          businessName: "Reyes Hotel",
+          businessType: "Accommodation",
+          address: "789 Beach Road, Masbate City, Masbate",
+          inspector1: "SFO3 David Martinez",
+          inspector2: "FO1 Lisa Brown",
+          inspectionDate: "2025-10-20",
+          defects:
+            "Fire sprinkler system malfunction on 3rd floor. Insufficient emergency lighting. Fire doors not self-closing.",
+          gracePeriod: "60 days from inspection date (Until December 19, 2025)",
+          status: "Pending Payment",
+        },
+      ];
+
+      let currentModal = new bootstrap.Modal(
+        document.getElementById("detailsModal")
+      );
+
+      function viewDetails(index) {
+        const est = establishments[index];
+        document.getElementById("modalOwnerName").textContent = est.ownerName;
+        document.getElementById("modalBusinessName").textContent =
+          est.businessName;
+        document.getElementById("modalBusinessType").textContent =
+          est.businessType;
+        document.getElementById("modalAddress").textContent = est.address;
+        document.getElementById("modalInspector1").textContent = est.inspector1;
+        document.getElementById("modalInspector2").textContent = est.inspector2;
+        document.getElementById("modalInspectionDate").textContent =
+          est.inspectionDate;
+        document.getElementById("modalDefects").textContent = est.defects;
+        document.getElementById("modalGracePeriod").textContent =
+          est.gracePeriod;
+        document.getElementById("totalPayment").value = "";
+
+        currentModal.show();
+      }
+
+      function searchTable() {
+        const input = document
+          .getElementById("searchInput")
+          .value.toLowerCase();
+        const table = document.getElementById("tableBody");
+        const rows = table.getElementsByTagName("tr");
+
+        for (let i = 0; i < rows.length; i++) {
+          const ownerName = rows[i]
+            .getElementsByTagName("td")[0]
+            .textContent.toLowerCase();
+          const businessName = rows[i]
+            .getElementsByTagName("td")[1]
+            .textContent.toLowerCase();
+
+          if (ownerName.includes(input) || businessName.includes(input)) {
+            rows[i].style.display = "";
+          } else {
+            rows[i].style.display = "none";
+          }
+        }
+      }
+
+      // Real-time search
+      document
+        .getElementById("searchInput")
+        .addEventListener("keyup", searchTable);
+
+      function updateOwner() {
+        const payment = document.getElementById("totalPayment").value;
+
+        if (!payment || payment <= 0) {
+          alert("Please enter a valid payment amount.");
+          return;
+        }
+
+        const ownerName = document.getElementById("modalOwnerName").textContent;
+
+        if (
+          confirm(
+            `Update payment of ₱${parseFloat(payment).toFixed(
+              2
+            )} for ${ownerName}?`
+          )
+        ) {
+          alert(
+            `Payment of ₱${parseFloat(payment).toFixed(
+              2
+            )} has been successfully recorded for ${ownerName}.\n\nThe owner has been notified of the fire code fee assessment.`
+          );
+          currentModal.hide();
+        }
+      }
+    </script>
+  </body>
+</html>

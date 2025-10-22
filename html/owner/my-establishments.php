@@ -49,13 +49,13 @@
           </a>
         </div>
         <div class="nav-item">
-          <a href="./my-establishments.php" class="nav-link">
+          <a href="./my-establishments.php" class="nav-link active">
             <i class="fas fa-building"></i>
             My Establishments
           </a>
         </div>
         <div class="nav-item">
-          <a href="./certificates.php" class="nav-link active">
+          <a href="./certificates.php" class="nav-link ">
             <i class="fas fa-calendar-check"></i>
             Certificates
           </a>
