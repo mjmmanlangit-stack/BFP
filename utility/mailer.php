@@ -29,9 +29,12 @@ function sendEmail($r, $body, $subject){
     $mail->Body    = $body;
 
     $mail->send();
+    return true;
    
 } catch (Exception $e) {
-    echo json_encode(['error'=>"error on email"]);
+    // Don't echo here - just log the error
+    error_log("Email sending failed: " . $e->getMessage());
+    return false;
 }
 
 }

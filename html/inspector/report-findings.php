@@ -1,3 +1,12 @@
+<?php
+session_start();
+
+// Check if user is logged in and is an inspector
+if (!isset($_SESSION['user']) || $_SESSION['role'] !== 'inspector') {
+    header('Location: ../index.php');
+    exit;
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -149,6 +158,61 @@
         border-radius: 8px;
         border-left: 4px solid var(--bfp-red);
       }
+
+      .defect-item {
+        background: white;
+        padding: 15px;
+        margin-bottom: 10px;
+        border-radius: 6px;
+        border: 1px solid #dee2e6;
+        position: relative;
+      }
+
+      .defect-item.solved {
+        border-left: 4px solid #28a745;
+        background-color: #f0f9f4;
+      }
+
+      .defect-item.pending {
+        border-left: 4px solid var(--bfp-gold);
+      }
+
+      .defect-status-badge {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+      }
+
+      .btn-partially-compliant {
+        background-color: var(--bfp-gold);
+        color: var(--bfp-dark);
+        border: none;
+      }
+
+      .btn-partially-compliant:hover {
+        background-color: #e0a800;
+        color: var(--bfp-dark);
+      }
+
+      .badge-partially-compliant {
+        background-color: var(--bfp-gold);
+        color: var(--bfp-dark);
+      }
+
+      .compliance-summary {
+        background: var(--bfp-light);
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 15px;
+      }
+
+      .finalized-badge {
+        display: inline-block;
+        padding: 8px 15px;
+        border-radius: 6px;
+        font-weight: bold;
+        margin-top: 10px;
+      }
     </style>
   </head>
   <body>
@@ -186,7 +250,7 @@
       </nav>
 
       <div class="nav-item">
-        <a href="../index.php" class="nav-link">
+        <a href="../../utility/logout.php" class="nav-link">
           <i class="fas fa-sign-out-alt"></i>
           Logout
         </a>
@@ -220,10 +284,22 @@
               <i class="fas fa-check-circle me-1"></i>Compliant
             </button>
             <button
+              class="btn btn-outline-warning filter-btn"
+              data-filter="partially_compliant"
+            >
+              <i class="fas fa-exclamation-triangle me-1"></i>Partially Compliant
+            </button>
+            <button
               class="btn btn-outline-danger filter-btn"
-              data-filter="non-compliant"
+              data-filter="non_compliant"
             >
               <i class="fas fa-exclamation-circle me-1"></i>Non-Compliant
+            </button>
+            <button
+              class="btn btn-outline-secondary filter-btn"
+              data-filter="pending"
+            >
+              <i class="fas fa-clock me-1"></i>Pending
             </button>
           </div>
         </div>
@@ -233,10 +309,11 @@
             <table class="table table-hover" id="complianceTable">
               <thead>
                 <tr>
-                  <th>Inspection Date</th>
+                  <th>Report Date</th>
+                  <th>Order No.</th>
                   <th>Business Name</th>
-                  <th>BFP Registration No.</th>
                   <th>Business Type</th>
+                  <th>Defects Progress</th>
                   <th>Grace Period</th>
                   <th>Days Left</th>
                   <th>Status</th>
@@ -268,6 +345,14 @@
             <div class="row mb-3">
               <div class="col-md-6">
                 <p>
+                  <span class="info-label">Report Date:</span>
+                  <span id="modalReportDate"></span>
+                </p>
+                <p>
+                  <span class="info-label">Inspection Order No.:</span>
+                  <span id="modalOrderNo"></span>
+                </p>
+                <p>
                   <span class="info-label">Inspection Date:</span>
                   <span id="modalInspectionDate"></span>
                 </p>
@@ -275,24 +360,41 @@
                   <span class="info-label">Business Name:</span>
                   <span id="modalBusinessName"></span>
                 </p>
+              </div>
+              <div class="col-md-6">
                 <p>
                   <span class="info-label">BFP Registration No.:</span>
                   <span id="modalRegNo"></span>
                 </p>
-              </div>
-              <div class="col-md-6">
                 <p>
                   <span class="info-label">Business Type:</span>
                   <span id="modalBusinessType"></span>
                 </p>
                 <p>
-                  <span class="info-label">Grace Period:</span>
-                  <span id="modalGracePeriod"></span>
+                  <span class="info-label">Inspectors:</span>
+                  <span id="modalInspectors"></span>
                 </p>
-                <p>
-                  <span class="info-label">Days Left:</span>
-                  <span id="modalDaysLeft"></span>
-                </p>
+              </div>
+            </div>
+
+            <div class="compliance-summary">
+              <div class="row">
+                <div class="col-md-4">
+                  <strong>Total Defects:</strong>
+                  <span id="summaryTotalDefects" class="badge bg-secondary ms-2">0</span>
+                </div>
+                <div class="col-md-4">
+                  <strong>Solved:</strong>
+                  <span id="summarySolvedDefects" class="badge bg-success ms-2">0</span>
+                </div>
+                <div class="col-md-4">
+                  <strong>Pending:</strong>
+                  <span id="summaryPendingDefects" class="badge bg-warning ms-2">0</span>
+                </div>
+              </div>
+              <div id="currentComplianceStatus" style="display: none;" class="mt-2">
+                <strong>Current Status:</strong>
+                <span id="currentStatusBadge" class="finalized-badge"></span>
               </div>
             </div>
 
@@ -311,36 +413,48 @@
             </div>
 
             <div class="mb-3">
-              <p class="info-label">Defects/Deficiencies:</p>
+              <p class="info-label">Defects/Deficiencies Status:</p>
               <div class="defects-box" id="modalDefects"></div>
             </div>
 
             <div class="mb-3">
               <label for="inspectorNotes" class="form-label info-label"
-                >Inspector Notes/Comments:</label
+                >Inspector Notes/Comments: <span class="text-danger">*</span></label
               >
               <textarea
                 class="form-control"
                 id="inspectorNotes"
                 rows="4"
-                placeholder="Enter your notes and comments here..."
+                placeholder="Enter your final assessment notes and comments here..."
               ></textarea>
             </div>
 
-            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+            <div class="alert alert-info">
+              <i class="fas fa-info-circle me-2"></i>
+              <strong>Note:</strong> Update each defect status (Solved/Pending) above, then finalize the overall compliance status below.
+            </div>
+
+            <div class="d-grid gap-2">
               <button
                 type="button"
                 class="btn btn-compliant"
-                onclick="markAsCompliant()"
+                onclick="finalizeCompliance('compliant')"
               >
-                <i class="fas fa-check me-2"></i>Mark as Compliant
+                <i class="fas fa-check-circle me-2"></i>Mark as COMPLIANT (All defects solved)
+              </button>
+              <button
+                type="button"
+                class="btn btn-partially-compliant"
+                onclick="finalizeCompliance('partially_compliant')"
+              >
+                <i class="fas fa-exclamation-triangle me-2"></i>Mark as PARTIALLY COMPLIANT (Some defects pending)
               </button>
               <button
                 type="button"
                 class="btn btn-non-compliant"
-                onclick="markAsNonCompliant()"
+                onclick="finalizeCompliance('non_compliant')"
               >
-                <i class="fas fa-times me-2"></i>Mark as Non-Compliant
+                <i class="fas fa-times-circle me-2"></i>Mark as NON-COMPLIANT (Major issues)
               </button>
             </div>
           </div>
@@ -354,169 +468,273 @@
       let map;
       let marker;
       let currentRecord = null;
+      let allReports = [];
+      let currentFilter = 'all';
 
-      // Sample data
-      const complianceData = [
-        {
-          id: 1,
-          inspectionDate: "2025-10-15",
-          businessName: "Grand Hotel Manila",
-          regNo: "BFP-2025-001",
-          businessType: "Hotel",
-          address: "123 Roxas Boulevard, Manila City",
-          coordinates: { lat: 14.5995, lng: 120.9842 },
-          defects:
-            "Missing fire extinguisher in 3rd floor, Emergency exit blocked, Fire alarm system not functional",
-          gracePeriod: "2025-10-23",
-          status: "pending",
-        },
-        {
-          id: 2,
-          inspectionDate: "2025-10-18",
-          businessName: "Tech Mall Center",
-          regNo: "BFP-2025-002",
-          businessType: "Shopping Mall",
-          address: "456 EDSA, Quezon City",
-          coordinates: { lat: 14.6488, lng: 121.0509 },
-          defects:
-            "Insufficient fire exits, Sprinkler system needs maintenance",
-          gracePeriod: "2025-10-25",
-          status: "pending",
-        },
-        {
-          id: 3,
-          inspectionDate: "2025-10-12",
-          businessName: "Santos Restaurant",
-          regNo: "BFP-2025-003",
-          businessType: "Restaurant",
-          address: "789 Tomas Morato, Quezon City",
-          coordinates: { lat: 14.6354, lng: 121.0321 },
-          defects: "Kitchen fire suppression system expired",
-          gracePeriod: "2025-10-22",
-          status: "pending",
-        },
-        {
-          id: 4,
-          inspectionDate: "2025-10-10",
-          businessName: "ABC Manufacturing",
-          regNo: "BFP-2025-004",
-          businessType: "Factory",
-          address: "321 Industrial Road, Caloocan City",
-          coordinates: { lat: 14.6507, lng: 120.9838 },
-          defects: "Fire safety training not conducted, Old fire extinguishers",
-          gracePeriod: "2025-10-20",
-          status: "compliant",
-        },
-        {
-          id: 5,
-          inspectionDate: "2025-10-08",
-          businessName: "City Hospital",
-          regNo: "BFP-2025-005",
-          businessType: "Hospital",
-          address: "555 España Boulevard, Manila",
-          coordinates: { lat: 14.6091, lng: 120.9896 },
-          defects: "Emergency lighting insufficient in basement area",
-          gracePeriod: "2025-10-18",
-          status: "non-compliant",
-        },
-      ];
+      // Load all reports from backend
+      async function loadReports() {
+        try {
+          const response = await fetch('../../utility/getInspectorReports.php');
+          const data = await response.json();
 
-      function calculateDaysLeft(gracePeriod) {
-        const today = new Date("2025-10-22");
-        const graceDate = new Date(gracePeriod);
-        const diffTime = graceDate - today;
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        return diffDays;
+          if (data.success) {
+            allReports = data.reports;
+            renderTable();
+          } else {
+            showAlert('Error loading reports: ' + data.message, 'danger');
+          }
+        } catch (error) {
+          console.error('Error:', error);
+          showAlert('Failed to load reports', 'danger');
+        }
+      }
+
+      function showAlert(message, type = 'info') {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+        alertDiv.innerHTML = `
+          ${message}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        document.querySelector('.main-content').insertBefore(
+          alertDiv, 
+          document.querySelector('.header-section').nextSibling
+        );
+        
+        setTimeout(() => {
+          alertDiv.remove();
+        }, 5000);
       }
 
       function getRowClass(daysLeft) {
-        if (daysLeft === 0) return "highlight-critical";
-        if (daysLeft === 1) return "highlight-warning";
+        if (daysLeft !== null && daysLeft <= 0) return "highlight-critical";
+        if (daysLeft !== null && daysLeft <= 2) return "highlight-warning";
         return "";
       }
 
-      function renderTable(filter = "all") {
+      function getStatusBadge(status) {
+        if (status === 'compliant') {
+          return '<span class="badge badge-compliant">Compliant</span>';
+        } else if (status === 'partially_compliant') {
+          return '<span class="badge badge-partially-compliant">Partially Compliant</span>';
+        } else if (status === 'non_compliant') {
+          return '<span class="badge badge-non-compliant">Non-Compliant</span>';
+        } else {
+          return '<span class="badge bg-secondary">Pending Review</span>';
+        }
+      }
+
+      function renderTable() {
         const tbody = document.getElementById("tableBody");
         tbody.innerHTML = "";
 
-        let filteredData = complianceData;
-        if (filter !== "all") {
-          filteredData = complianceData.filter(
-            (item) => item.status === filter
-          );
+        let filteredData = allReports;
+        if (currentFilter !== "all") {
+          if (currentFilter === 'pending') {
+            filteredData = allReports.filter(r => !r.complianceStatus);
+          } else {
+            filteredData = allReports.filter(r => r.complianceStatus === currentFilter);
+          }
         }
 
-        filteredData.forEach((item) => {
-          const daysLeft = calculateDaysLeft(item.gracePeriod);
-          const rowClass = getRowClass(daysLeft);
-          const statusBadge =
-            item.status === "compliant"
-              ? "badge-compliant"
-              : item.status === "non-compliant"
-              ? "badge-non-compliant"
-              : "bg-warning";
-          const statusText =
-            item.status === "compliant"
-              ? "Compliant"
-              : item.status === "non-compliant"
-              ? "Non-Compliant"
-              : "Pending";
+        if (filteredData.length === 0) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="9" class="text-center text-muted py-4">
+                <i class="fas fa-inbox fa-3x mb-3"></i>
+                <p>No reports found</p>
+              </td>
+            </tr>
+          `;
+          return;
+        }
+
+        filteredData.forEach((report) => {
+          const rowClass = getRowClass(report.daysLeft);
+          const statusBadge = getStatusBadge(report.complianceStatus);
+          const daysLeftText = report.daysLeft !== null 
+            ? `${report.daysLeft} days` 
+            : 'N/A';
+          const gracePeriodText = report.earliestGracePeriod || 'N/A';
+          const progressText = `${report.solvedDefects}/${report.totalDefects}`;
+          const progressPercent = report.totalDefects > 0 
+            ? Math.round((report.solvedDefects / report.totalDefects) * 100) 
+            : 0;
 
           const row = `
-                    <tr class="${rowClass}">
-                        <td>${item.inspectionDate}</td>
-                        <td>${item.businessName}</td>
-                        <td>${item.regNo}</td>
-                        <td>${item.businessType}</td>
-                        <td>${item.gracePeriod}</td>
-                        <td><strong>${daysLeft} days</strong></td>
-                        <td><span class="badge ${statusBadge}">${statusText}</span></td>
-                        <td>
-                            <button class="btn btn-view btn-sm" onclick="viewDetails(${item.id})">
-                                <i class="fas fa-eye me-1"></i>View
-                            </button>
-                        </td>
-                    </tr>
-                `;
+            <tr class="${rowClass}">
+              <td>${report.reportDate}</td>
+              <td>${report.inspectionOrderNo}</td>
+              <td>${report.businessName}</td>
+              <td>${report.businessType}</td>
+              <td>
+                <div class="progress" style="height: 20px;">
+                  <div class="progress-bar ${progressPercent === 100 ? 'bg-success' : 'bg-warning'}" 
+                       role="progressbar" 
+                       style="width: ${progressPercent}%"
+                       aria-valuenow="${progressPercent}" 
+                       aria-valuemin="0" 
+                       aria-valuemax="100">
+                    ${progressText}
+                  </div>
+                </div>
+              </td>
+              <td>${gracePeriodText}</td>
+              <td><strong>${daysLeftText}</strong></td>
+              <td>${statusBadge}</td>
+              <td>
+                <button class="btn btn-view btn-sm" onclick="viewDetails(${report.reportId})">
+                  <i class="fas fa-eye me-1"></i>View
+                </button>
+              </td>
+            </tr>
+          `;
           tbody.innerHTML += row;
         });
       }
 
-      function viewDetails(id) {
-        currentRecord = complianceData.find((item) => item.id === id);
+      function updateDefectSummary() {
+        if (!currentRecord) return;
+        
+        const total = currentRecord.defects.length;
+        const solved = currentRecord.defects.filter(d => d.status === 'solved').length;
+        const pending = total - solved;
+        
+        document.getElementById('summaryTotalDefects').textContent = total;
+        document.getElementById('summarySolvedDefects').textContent = solved;
+        document.getElementById('summaryPendingDefects').textContent = pending;
+        
+        // Show current status if finalized
+        if (currentRecord.complianceStatus) {
+          const statusDiv = document.getElementById('currentComplianceStatus');
+          const statusBadge = document.getElementById('currentStatusBadge');
+          statusDiv.style.display = 'block';
+          
+          let statusText = '';
+          let statusClass = '';
+          if (currentRecord.complianceStatus === 'compliant') {
+            statusText = 'COMPLIANT';
+            statusClass = 'bg-success text-white';
+          } else if (currentRecord.complianceStatus === 'partially_compliant') {
+            statusText = 'PARTIALLY COMPLIANT';
+            statusClass = 'bg-warning text-dark';
+          } else {
+            statusText = 'NON-COMPLIANT';
+            statusClass = 'bg-danger text-white';
+          }
+          
+          statusBadge.textContent = statusText;
+          statusBadge.className = 'finalized-badge ' + statusClass;
+        } else {
+          document.getElementById('currentComplianceStatus').style.display = 'none';
+        }
+      }
+
+      async function toggleDefectStatus(defectId, currentStatus) {
+        const newStatus = currentStatus === 'solved' ? 'pending' : 'solved';
+        
+        try {
+          const response = await fetch('../../utility/updateDefectStatus.php', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              defectId: defectId,
+              status: newStatus
+            })
+          });
+
+          const data = await response.json();
+
+          if (data.success) {
+            // Update local data
+            const defect = currentRecord.defects.find(d => d.id === defectId);
+            if (defect) {
+              defect.status = newStatus;
+            }
+            
+            // Re-render defects and update summary
+            renderDefects();
+            updateDefectSummary();
+            
+            showAlert(`Defect marked as ${newStatus}`, 'success');
+          } else {
+            showAlert('Error: ' + data.message, 'danger');
+          }
+        } catch (error) {
+          console.error('Error:', error);
+          showAlert('Failed to update defect status', 'danger');
+        }
+      }
+
+      function renderDefects() {
+        const container = document.getElementById('modalDefects');
+        container.innerHTML = '';
+        
+        if (!currentRecord || !currentRecord.defects || currentRecord.defects.length === 0) {
+          container.innerHTML = '<p class="text-muted">No defects recorded</p>';
+          return;
+        }
+        
+        currentRecord.defects.forEach((defect, index) => {
+          const itemClass = defect.status === 'solved' ? 'defect-item solved' : 'defect-item pending';
+          const statusBadge = defect.status === 'solved'
+            ? '<span class="badge bg-success defect-status-badge">Solved</span>'
+            : '<span class="badge bg-warning defect-status-badge">Pending</span>';
+          
+          const defectDiv = document.createElement('div');
+          defectDiv.className = itemClass;
+          defectDiv.innerHTML = `
+            ${statusBadge}
+            <h6><i class="fas fa-exclamation-circle me-2"></i>Defect #${index + 1}</h6>
+            <p class="mb-2"><strong>Details:</strong> ${defect.details}</p>
+            <p class="mb-2"><strong>Grace Period:</strong> ${defect.gracePeriod}</p>
+            <button class="btn btn-sm ${defect.status === 'solved' ? 'btn-warning' : 'btn-success'}" 
+                    onclick="toggleDefectStatus(${defect.id}, '${defect.status}')">
+              <i class="fas ${defect.status === 'solved' ? 'fa-undo' : 'fa-check'}"></i>
+              Mark as ${defect.status === 'solved' ? 'Pending' : 'Solved'}
+            </button>
+          `;
+          
+          container.appendChild(defectDiv);
+        });
+      }
+
+      async function viewDetails(reportId) {
+        currentRecord = allReports.find((r) => r.reportId === reportId);
         if (!currentRecord) return;
 
-        const daysLeft = calculateDaysLeft(currentRecord.gracePeriod);
-
-        document.getElementById("modalInspectionDate").textContent =
-          currentRecord.inspectionDate;
-        document.getElementById("modalBusinessName").textContent =
-          currentRecord.businessName;
+        // Populate modal fields
+        document.getElementById("modalReportDate").textContent = currentRecord.reportDate;
+        document.getElementById("modalOrderNo").textContent = currentRecord.inspectionOrderNo;
+        document.getElementById("modalInspectionDate").textContent = currentRecord.inspectionDate;
+        document.getElementById("modalBusinessName").textContent = currentRecord.businessName;
         document.getElementById("modalRegNo").textContent = currentRecord.regNo;
-        document.getElementById("modalBusinessType").textContent =
-          currentRecord.businessType;
-        document.getElementById("modalGracePeriod").textContent =
-          currentRecord.gracePeriod;
-        document.getElementById(
-          "modalDaysLeft"
-        ).textContent = `${daysLeft} days`;
-        document.getElementById("modalAddress").textContent =
-          currentRecord.address;
-        document.getElementById(
-          "modalCoordinates"
-        ).textContent = `${currentRecord.coordinates.lat}, ${currentRecord.coordinates.lng}`;
-        document.getElementById("modalDefects").textContent =
-          currentRecord.defects;
-        document.getElementById("inspectorNotes").value = "";
+        document.getElementById("modalBusinessType").textContent = currentRecord.businessType;
+        document.getElementById("modalInspectors").textContent = 
+          `${currentRecord.inspector1}, ${currentRecord.inspector2}`;
+        document.getElementById("modalAddress").textContent = currentRecord.address;
+        document.getElementById("modalCoordinates").textContent = 
+          `${currentRecord.latitude}, ${currentRecord.longitude}`;
+        
+        // Set notes if already finalized
+        document.getElementById("inspectorNotes").value = currentRecord.inspectorNotes || '';
+        
+        // Render defects with status controls
+        renderDefects();
+        
+        // Update summary
+        updateDefectSummary();
 
-        const modal = new bootstrap.Modal(
-          document.getElementById("detailsModal")
-        );
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById("detailsModal"));
         modal.show();
 
+        // Initialize map after modal is shown
         setTimeout(() => {
-          initMap(currentRecord.coordinates.lat, currentRecord.coordinates.lng);
-        }, 200);
+          initMap(currentRecord.latitude, currentRecord.longitude);
+        }, 300);
       }
 
       function initMap(lat, lng) {
@@ -534,60 +752,75 @@
           .addTo(map)
           .bindPopup(currentRecord.businessName)
           .openPopup();
+
+        setTimeout(() => {
+          map.invalidateSize();
+        }, 100);
       }
 
-      function markAsCompliant() {
-        const notes = document.getElementById("inspectorNotes").value;
-        if (!notes.trim()) {
-          alert("Please enter notes/comments before marking as compliant.");
+      async function finalizeCompliance(complianceStatus) {
+        const notes = document.getElementById("inspectorNotes").value.trim();
+        
+        if (!notes) {
+          showAlert("Please enter inspector notes before finalizing", "warning");
           return;
         }
 
-        if (currentRecord) {
-          currentRecord.status = "compliant";
-          alert(
-            `${currentRecord.businessName} has been marked as COMPLIANT.\n\nNotes: ${notes}`
-          );
-          renderTable();
-          bootstrap.Modal.getInstance(
-            document.getElementById("detailsModal")
-          ).hide();
-        }
-      }
+        if (!currentRecord) return;
 
-      function markAsNonCompliant() {
-        const notes = document.getElementById("inspectorNotes").value;
-        if (!notes.trim()) {
-          alert("Please enter notes/comments before marking as non-compliant.");
+        // Confirmation
+        let statusText = complianceStatus === 'compliant' ? 'COMPLIANT' 
+          : complianceStatus === 'partially_compliant' ? 'PARTIALLY COMPLIANT' 
+          : 'NON-COMPLIANT';
+        
+        if (!confirm(`Are you sure you want to mark this report as ${statusText}?`)) {
           return;
         }
 
-        if (currentRecord) {
-          currentRecord.status = "non-compliant";
-          alert(
-            `${currentRecord.businessName} has been marked as NON-COMPLIANT.\n\nNotes: ${notes}`
-          );
-          renderTable();
-          bootstrap.Modal.getInstance(
-            document.getElementById("detailsModal")
-          ).hide();
+        try {
+          const response = await fetch('../../utility/finalizeReport.php', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              reportId: currentRecord.reportId,
+              complianceStatus: complianceStatus,
+              inspectorNotes: notes
+            })
+          });
+
+          const data = await response.json();
+
+          if (data.success) {
+            showAlert(`Report finalized as ${statusText}`, 'success');
+            
+            // Close modal
+            bootstrap.Modal.getInstance(document.getElementById("detailsModal")).hide();
+            
+            // Reload reports
+            await loadReports();
+          } else {
+            showAlert('Error: ' + data.message, 'danger');
+          }
+        } catch (error) {
+          console.error('Error:', error);
+          showAlert('Failed to finalize report', 'danger');
         }
       }
 
       // Filter buttons
       document.querySelectorAll(".filter-btn").forEach((btn) => {
         btn.addEventListener("click", function () {
-          document
-            .querySelectorAll(".filter-btn")
-            .forEach((b) => b.classList.remove("active"));
+          document.querySelectorAll(".filter-btn").forEach((b) => b.classList.remove("active"));
           this.classList.add("active");
-          const filter = this.getAttribute("data-filter");
-          renderTable(filter);
+          currentFilter = this.getAttribute("data-filter");
+          renderTable();
         });
       });
 
-      // Initial render
-      renderTable();
+      // Initial load
+      loadReports();
     </script>
   </body>
 </html>

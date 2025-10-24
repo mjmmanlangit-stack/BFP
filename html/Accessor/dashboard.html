@@ -411,70 +411,109 @@
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="../../assets/scripts/components/sidebar.js"></script>
     <script>
-      // Sample data
-      const establishments = [
-        {
-          ownerName: "Juan Dela Cruz",
-          businessName: "Dela Cruz Restaurant",
-          businessType: "Food Service",
-          address: "123 Main St, Masbate City, Masbate",
-          inspector1: "SFO2 Mark Johnson",
-          inspector2: "FO1 Anna Garcia",
-          inspectionDate: "2025-10-15",
-          defects:
-            "Missing fire extinguisher in kitchen area. Emergency exit signs not illuminated. Fire alarm system needs maintenance.",
-          gracePeriod: "30 days from inspection date (Until November 14, 2025)",
-          status: "Pending Payment",
-        },
-        {
-          ownerName: "Maria Santos",
-          businessName: "Santos Hardware Store",
-          businessType: "Retail",
-          address: "456 Commerce Ave, Masbate City, Masbate",
-          inspector1: "SFO1 Robert Lee",
-          inspector2: "FO2 Carmen Torres",
-          inspectionDate: "2025-10-18",
-          defects:
-            "Electrical wiring not properly insulated. Flammable materials stored near heat source. Exit pathway obstructed.",
-          gracePeriod: "45 days from inspection date (Until December 2, 2025)",
-          status: "Pending Payment",
-        },
-        {
-          ownerName: "Pedro Reyes",
-          businessName: "Reyes Hotel",
-          businessType: "Accommodation",
-          address: "789 Beach Road, Masbate City, Masbate",
-          inspector1: "SFO3 David Martinez",
-          inspector2: "FO1 Lisa Brown",
-          inspectionDate: "2025-10-20",
-          defects:
-            "Fire sprinkler system malfunction on 3rd floor. Insufficient emergency lighting. Fire doors not self-closing.",
-          gracePeriod: "60 days from inspection date (Until December 19, 2025)",
-          status: "Pending Payment",
-        },
-      ];
+      let establishments = [];
+      let currentInspectionId = null;
+      let currentModal = new bootstrap.Modal(document.getElementById("detailsModal"));
 
-      let currentModal = new bootstrap.Modal(
-        document.getElementById("detailsModal")
-      );
+      // Load inspections from database
+      async function loadInspections() {
+        try {
+          const response = await fetch('../../utility/getAccessorInspections.php');
+          const data = await response.json();
+          
+          if (data.success) {
+            establishments = data.inspections;
+            renderTable();
+          } else {
+            showAlert('Failed to load inspections: ' + data.message, 'danger');
+          }
+        } catch (error) {
+          console.error('Error loading inspections:', error);
+          showAlert('An error occurred while loading inspections', 'danger');
+        }
+      }
+
+      function showAlert(message, type = 'info') {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3`;
+        alertDiv.style.zIndex = '9999';
+        alertDiv.innerHTML = `
+          ${message}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        document.body.appendChild(alertDiv);
+        setTimeout(() => alertDiv.remove(), 5000);
+      }
+
+      function renderTable() {
+        const tbody = document.getElementById('tableBody');
+        tbody.innerHTML = '';
+        
+        establishments.forEach((est, index) => {
+          const statusBadge = est.payment === 'paid' 
+            ? '<span class="badge bg-success">Paid</span>'
+            : '<span class="badge bg-warning">Pending Payment</span>';
+          
+          const row = `
+            <tr>
+              <td>${est.ownerName}</td>
+              <td>${est.businessName}</td>
+              <td>${est.businessType}</td>
+              <td>${est.inspectionDate}</td>
+              <td>${statusBadge}</td>
+              <td>
+                <button class="btn btn-view btn-sm" onclick="viewDetails(${index})">
+                  <i class="fas fa-eye"></i> View
+                </button>
+              </td>
+            </tr>
+          `;
+          tbody.innerHTML += row;
+        });
+      }
 
       function viewDetails(index) {
         const est = establishments[index];
+        currentInspectionId = est.inspectionId;
+        
         document.getElementById("modalOwnerName").textContent = est.ownerName;
-        document.getElementById("modalBusinessName").textContent =
-          est.businessName;
-        document.getElementById("modalBusinessType").textContent =
-          est.businessType;
+        document.getElementById("modalBusinessName").textContent = est.businessName;
+        document.getElementById("modalBusinessType").textContent = est.businessType;
         document.getElementById("modalAddress").textContent = est.address;
         document.getElementById("modalInspector1").textContent = est.inspector1;
         document.getElementById("modalInspector2").textContent = est.inspector2;
-        document.getElementById("modalInspectionDate").textContent =
-          est.inspectionDate;
+        document.getElementById("modalInspectionDate").textContent = est.inspectionDate;
         document.getElementById("modalDefects").textContent = est.defects;
-        document.getElementById("modalGracePeriod").textContent =
-          est.gracePeriod;
+        document.getElementById("modalGracePeriod").textContent = est.gracePeriod;
         document.getElementById("totalPayment").value = "";
+
+        // Show payment status
+        const paymentSection = document.querySelector('.payment-section');
+        if (est.payment === 'paid') {
+          paymentSection.innerHTML = `
+            <div class="alert alert-success">
+              <i class="fas fa-check-circle"></i> 
+              <strong>Payment Completed</strong>
+              <p class="mb-0 mt-2">This establishment has already paid the fire code fee.</p>
+            </div>
+          `;
+        } else {
+          paymentSection.innerHTML = `
+            <h5 class="mb-3">
+              <i class="fas fa-money-bill-wave"></i> Fire Code Fee Payment
+            </h5>
+            <div class="mb-3">
+              <label for="totalPayment" class="form-label fw-bold">Total Payment (₱):</label>
+              <input type="number" class="form-control" id="totalPayment" 
+                     placeholder="Enter total payment amount" step="0.01" min="0" />
+            </div>
+            <button class="btn btn-bfp w-100" onclick="updatePayment()">
+              <i class="fas fa-save"></i> Mark as Paid
+            </button>
+          `;
+        }
 
         currentModal.show();
       }
@@ -503,35 +542,65 @@
       }
 
       // Real-time search
-      document
-        .getElementById("searchInput")
-        .addEventListener("keyup", searchTable);
+      document.getElementById("searchInput").addEventListener("keyup", searchTable);
 
-      function updateOwner() {
-        const payment = document.getElementById("totalPayment").value;
+      async function updatePayment() {
+        const paymentInput = document.getElementById("totalPayment");
+        if (!paymentInput) {
+          showAlert('Payment input not found', 'danger');
+          return;
+        }
+        
+        const payment = paymentInput.value;
 
         if (!payment || payment <= 0) {
-          alert("Please enter a valid payment amount.");
+          showAlert("Please enter a valid payment amount", 'warning');
           return;
         }
 
         const ownerName = document.getElementById("modalOwnerName").textContent;
 
-        if (
-          confirm(
-            `Update payment of ₱${parseFloat(payment).toFixed(
-              2
-            )} for ${ownerName}?`
-          )
-        ) {
-          alert(
-            `Payment of ₱${parseFloat(payment).toFixed(
-              2
-            )} has been successfully recorded for ${ownerName}.\n\nThe owner has been notified of the fire code fee assessment.`
-          );
-          currentModal.hide();
+        if (!confirm(`Mark payment of ₱${parseFloat(payment).toFixed(2)} as paid for ${ownerName}?`)) {
+          return;
+        }
+
+        try {
+          const response = await fetch('../../utility/updatePaymentStatus.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              inspectionId: currentInspectionId,
+              paymentAmount: parseFloat(payment)
+            })
+          });
+
+          const data = await response.json();
+
+          if (data.success) {
+            showAlert(`Payment of ₱${parseFloat(payment).toFixed(2)} has been successfully recorded for ${ownerName}`, 'success');
+            
+            // Update local data
+            const inspection = establishments.find(e => e.inspectionId === currentInspectionId);
+            if (inspection) {
+              inspection.payment = 'paid';
+            }
+            
+            // Close modal and refresh table
+            currentModal.hide();
+            renderTable();
+          } else {
+            showAlert('Failed to update payment: ' + data.message, 'danger');
+          }
+        } catch (error) {
+          console.error('Error updating payment:', error);
+          showAlert('An error occurred while updating payment', 'danger');
         }
       }
+
+      // Initialize on page load
+      document.addEventListener('DOMContentLoaded', function() {
+        loadInspections();
+      });
     </script>
   </body>
 </html>

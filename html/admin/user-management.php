@@ -134,7 +134,7 @@
 
       <nav class="sidebar-nav">
         <div class="nav-item">
-          <a href="./dashboard.html" class="nav-link">
+          <a href="./dashboard.php" class="nav-link">
             <i class="fas fa-tachometer-alt"></i>
             Dashboard
           </a>
@@ -188,11 +188,13 @@
                 <div class="col-md-6">
                   <select class="form-select" id="filterRole">
                     <option value="">All Roles</option>
+                    <option value="admin">Admin</option>
                     <option value="Inspector">Inspector</option>
                     <option value="Chief">Chief</option>
                     <option value="Fire Marshal">Fire Marshal</option>
                     <option value="CRO">Customer Relationship Officer</option>
                     <option value="Accessor">Accessor</option>
+                    <option value="owner">Owner</option>
                   </select>
                 </div>
               </div>
@@ -277,18 +279,20 @@
                 <label class="form-label">Role</label>
                 <select class="form-select" id="addRole" required>
                   <option value="">Select Role</option>
+                  <option value="admin">Admin</option>
                   <option value="Inspector">Inspector</option>
                   <option value="Chief">Chief</option>
                   <option value="Fire Marshal">Fire Marshal</option>
                   <option value="CRO">Customer Relationship Officer</option>
                   <option value="Accessor">Accessor</option>
+                  <option value="owner">Owner</option>
                 </select>
               </div>
               <div class="mb-3">
                 <label class="form-label">Status</label>
                 <select class="form-select" id="addStatus" required>
-                  <option value="Active">Active</option>
-                  <option value="Inactive">Inactive</option>
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
                 </select>
               </div>
             </form>
@@ -363,18 +367,20 @@
               <div class="mb-3">
                 <label class="form-label">Role</label>
                 <select class="form-select" id="editRole" required>
+                  <option value="admin">Admin</option>
                   <option value="Inspector">Inspector</option>
                   <option value="Chief">Chief</option>
                   <option value="Fire Marshal">Fire Marshal</option>
                   <option value="CRO">Customer Relationship Officer</option>
                   <option value="Accessor">Accessor</option>
+                  <option value="owner">Owner</option>
                 </select>
               </div>
               <div class="mb-3">
                 <label class="form-label">Status</label>
                 <select class="form-select" id="editStatus" required>
-                  <option value="Active">Active</option>
-                  <option value="Inactive">Inactive</option>
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
                 </select>
               </div>
             </form>
@@ -454,61 +460,13 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
     <script>
-      // Sample data
-      let users = [
-        {
-          id: 1,
-          fullName: "Juan Dela Cruz",
-          address: "123 Main St, Masbate",
-          contact: "09171234567",
-          email: "juan.delacruz@bfp.gov.ph",
-          role: "Inspector",
-          status: "Active",
-        },
-        {
-          id: 2,
-          fullName: "Maria Santos",
-          address: "456 Oak Ave, Masbate",
-          contact: "09187654321",
-          email: "maria.santos@bfp.gov.ph",
-          role: "Chief",
-          status: "Active",
-        },
-        {
-          id: 3,
-          fullName: "Pedro Reyes",
-          address: "789 Pine Rd, Masbate",
-          contact: "09191112222",
-          email: "pedro.reyes@bfp.gov.ph",
-          role: "Fire Marshal",
-          status: "Active",
-        },
-        {
-          id: 4,
-          fullName: "Ana Garcia",
-          address: "321 Elm St, Masbate",
-          contact: "09203334444",
-          email: "ana.garcia@bfp.gov.ph",
-          role: "CRO",
-          status: "Active",
-        },
-        {
-          id: 5,
-          fullName: "Jose Fernandez",
-          address: "654 Maple Dr, Masbate",
-          contact: "09215556666",
-          email: "jose.fernandez@bfp.gov.ph",
-          role: "Accessor",
-          status: "Inactive",
-        },
-      ];
-
-      
-      let nextId = 6;
+      // Data storage
+      let users = [];
+      let nextId = 1;
 
       // Initialize
       document.addEventListener("DOMContentLoaded", function () {
-        renderUsers();
+        loadUsers();
         setupEventListeners();
       });
 
@@ -521,6 +479,24 @@
           .addEventListener("change", filterUsers);
       }
 
+      // Load users from backend
+      async function loadUsers() {
+        try {
+          const response = await fetch('../../utility/getUserList.php');
+          const data = await response.json();
+          
+          if (Array.isArray(data)) {
+            users = data;
+            renderUsers();
+          } else {
+            console.error('Invalid data format received');
+            showAlert('Error loading users', 'danger');
+          }
+        } catch (error) {
+          console.error('Error loading users:', error);
+          showAlert('Failed to load users', 'danger');
+        }
+      }
 
       function getRoleBadgeClass(role) {
         const badges = {
@@ -529,6 +505,9 @@
           "Fire Marshal": "bg-dark",
           CRO: "bg-info",
           Accessor: "bg-success",
+          admin: "bg-primary",
+          owner: "bg-secondary",
+          inspector: "bg-danger"
         };
         return badges[role] || "bg-secondary";
       }
@@ -538,17 +517,29 @@
         const tbody = document.getElementById("userTableBody");
         tbody.innerHTML = "";
 
+        if (usersToRender.length === 0) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="5" class="text-center">No users found</td>
+            </tr>
+          `;
+          return;
+        }
+
         usersToRender.forEach((user) => {
           const tr = document.createElement("tr");
+          const contact = user.phone_number || 'N/A';
+          const status = user.status || 'active';
+          
           tr.innerHTML = `
-                    <td>${user.fullName}</td>
+                    <td>${user.fullname}</td>
                     <td><span class="badge ${getRoleBadgeClass(
                       user.role
                     )} badge-role">${user.role}</span></td>
-                    <td>${user.contact}</td>
+                    <td>${contact}</td>
                     <td><span class="badge ${
-                      user.status === "Active" ? "bg-success" : "bg-secondary"
-                    }">${user.status}</span></td>
+                      status.toLowerCase() === "active" ? "bg-success" : "bg-secondary"
+                    }">${status}</span></td>
                     <td>
                         <button class="btn btn-sm btn-info action-btn" onclick="viewUser(${
                           user.id
@@ -570,137 +561,235 @@
         const searchTerm = document
           .getElementById("searchUser")
           .value.toLowerCase();
-        const roleFilter = document.getElementById("filterRole").value;
+        const roleFilter = document.getElementById("filterRole").value.toLowerCase();
 
         const filtered = users.filter((user) => {
-          const matchesSearch = user.fullName
+          const matchesSearch = user.fullname
             .toLowerCase()
             .includes(searchTerm);
-          const matchesRole = !roleFilter || user.role === roleFilter;
+          const matchesRole = !roleFilter || user.role.toLowerCase() === roleFilter.toLowerCase();
           return matchesSearch && matchesRole;
         });
 
         renderUsers(filtered);
       }
 
-      function addUser() {
-        const fullName = document.getElementById("addFullName").value;
-        const address = document.getElementById("addAddress").value;
-        const contact = document.getElementById("addContact").value;
-        const email = document.getElementById("addEmail").value;
+      async function addUser() {
+        const fullName = document.getElementById("addFullName").value.trim();
+        const address = document.getElementById("addAddress").value.trim();
+        const contact = document.getElementById("addContact").value.trim();
+        const email = document.getElementById("addEmail").value.trim();
         const role = document.getElementById("addRole").value;
         const status = document.getElementById("addStatus").value;
 
         if (!fullName || !address || !contact || !email || !role || !status) {
-          alert("Please fill in all fields");
+          showAlert("Please fill in all fields", "warning");
           return;
         }
 
-        const newUser = {
-          id: nextId++,
-          fullName,
-          address,
-          contact,
-          email,
-          role,
-          status,
+        // Email validation
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+          showAlert("Please enter a valid email address", "warning");
+          return;
+        }
+
+        // Phone validation (Philippine format)
+        const phoneRegex = /^(09|\+639)\d{9}$/;
+        if (!phoneRegex.test(contact.replace(/[\s-]/g, ''))) {
+          showAlert("Please enter a valid Philippine phone number (e.g., 09171234567)", "warning");
+          return;
+        }
+
+        const userData = {
+          fullname: fullName,
+          address: address,
+          contact: contact,
+          email: email,
+          role: role,
+          status: status
         };
 
-        users.push(newUser);
+        try {
+          const response = await fetch('../../utility/addNewUser.php', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(userData)
+          });
 
-        // Add activity log
-        activityLogs.unshift({
-          user: "Administrator",
-          role: "Admin",
-          action: `Added new user: ${fullName} (${role})`,
-          time: "Just now",
-        });
-
-        renderUsers();
-        updateStatistics();
-        renderActivityLogs();
-
-        // Close modal and reset form
-        const modal = bootstrap.Modal.getInstance(
-          document.getElementById("addUserModal")
-        );
-        modal.hide();
-        document.getElementById("addUserForm").reset();
+          const result = await response.json();
+          
+          if (result.success) {
+            showAlert("User added successfully!", "success");
+            
+            // Close modal and reset form
+            const modal = bootstrap.Modal.getInstance(
+              document.getElementById("addUserModal")
+            );
+            modal.hide();
+            document.getElementById("addUserForm").reset();
+            
+            // Reload users
+            await loadUsers();
+          } else {
+            showAlert(result.error || "Failed to add user", "danger");
+          }
+        } catch (error) {
+          console.error('Error adding user:', error);
+          showAlert("Failed to add user. Please try again.", "danger");
+        }
       }
 
-      function editUser(id) {
-        const user = users.find((u) => u.id === id);
-        if (!user) return;
+      async function editUser(id) {
+        try {
+          const response = await fetch(`../../utility/getUserById.php?id=${id}`);
+          const user = await response.json();
+          
+          if (user.error) {
+            showAlert("User not found", "danger");
+            return;
+          }
 
-        document.getElementById("editUserId").value = user.id;
-        document.getElementById("editFullName").value = user.fullName;
-        document.getElementById("editAddress").value = user.address;
-        document.getElementById("editContact").value = user.contact;
-        document.getElementById("editEmail").value = user.email;
-        document.getElementById("editRole").value = user.role;
-        document.getElementById("editStatus").value = user.status;
+          document.getElementById("editUserId").value = user.id;
+          document.getElementById("editFullName").value = user.fullname;
+          document.getElementById("editAddress").value = user.address;
+          document.getElementById("editContact").value = user.phone_number || '';
+          document.getElementById("editEmail").value = user.email;
+          document.getElementById("editRole").value = user.role;
+          document.getElementById("editStatus").value = user.status;
 
-        const modal = new bootstrap.Modal(
-          document.getElementById("editUserModal")
-        );
-        modal.show();
+          const modal = new bootstrap.Modal(
+            document.getElementById("editUserModal")
+          );
+          modal.show();
+        } catch (error) {
+          console.error('Error loading user:', error);
+          showAlert("Failed to load user details", "danger");
+        }
       }
 
-      function saveEditUser() {
+      async function saveEditUser() {
         const id = parseInt(document.getElementById("editUserId").value);
-        const user = users.find((u) => u.id === id);
+        const fullName = document.getElementById("editFullName").value.trim();
+        const address = document.getElementById("editAddress").value.trim();
+        const contact = document.getElementById("editContact").value.trim();
+        const email = document.getElementById("editEmail").value.trim();
+        const role = document.getElementById("editRole").value;
+        const status = document.getElementById("editStatus").value;
 
-        if (!user) return;
+        if (!fullName || !address || !email || !role || !status) {
+          showAlert("Please fill in all required fields", "warning");
+          return;
+        }
 
-        user.fullName = document.getElementById("editFullName").value;
-        user.address = document.getElementById("editAddress").value;
-        user.contact = document.getElementById("editContact").value;
-        user.email = document.getElementById("editEmail").value;
-        user.role = document.getElementById("editRole").value;
-        user.status = document.getElementById("editStatus").value;
+        // Email validation
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+          showAlert("Please enter a valid email address", "warning");
+          return;
+        }
 
-        // Add activity log
-        activityLogs.unshift({
-          user: "Administrator",
-          role: "Admin",
-          action: `Updated user information: ${user.fullName}`,
-          time: "Just now",
-        });
+        // Phone validation (Philippine format) - only if contact is provided
+        if (contact) {
+          const phoneRegex = /^(09|\+639)\d{9}$/;
+          if (!phoneRegex.test(contact.replace(/[\s-]/g, ''))) {
+            showAlert("Please enter a valid Philippine phone number (e.g., 09171234567)", "warning");
+            return;
+          }
+        }
 
-        renderUsers();
-        updateStatistics();
-        renderActivityLogs();
+        const userData = {
+          id: id,
+          fullname: fullName,
+          address: address,
+          contact: contact,
+          email: email,
+          role: role,
+          status: status
+        };
 
-        const modal = bootstrap.Modal.getInstance(
-          document.getElementById("editUserModal")
-        );
-        modal.hide();
+        try {
+          const response = await fetch('../../utility/editUser.php', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(userData)
+          });
+
+          const result = await response.json();
+          
+          if (result.success) {
+            showAlert("User updated successfully!", "success");
+            
+            const modal = bootstrap.Modal.getInstance(
+              document.getElementById("editUserModal")
+            );
+            modal.hide();
+            
+            // Reload users
+            await loadUsers();
+          } else {
+            showAlert(result.error || "Failed to update user", "danger");
+          }
+        } catch (error) {
+          console.error('Error updating user:', error);
+          showAlert("Failed to update user. Please try again.", "danger");
+        }
       }
 
-      function viewUser(id) {
-        const user = users.find((u) => u.id === id);
-        if (!user) return;
+      async function viewUser(id) {
+        try {
+          const response = await fetch(`../../utility/getUserById.php?id=${id}`);
+          const user = await response.json();
+          
+          if (user.error) {
+            showAlert("User not found", "danger");
+            return;
+          }
 
-        document.getElementById("viewFullName").textContent = user.fullName;
-        document.getElementById("viewAddress").textContent = user.address;
-        document.getElementById("viewContact").textContent = user.contact;
-        document.getElementById("viewEmail").textContent = user.email;
-        document.getElementById(
-          "viewRole"
-        ).innerHTML = `<span class="badge ${getRoleBadgeClass(user.role)}">${
-          user.role
-        }</span>`;
-        document.getElementById("viewStatus").innerHTML = `<span class="badge ${
-          user.status === "Active" ? "bg-success" : "bg-secondary"
-        }">${user.status}</span>`;
+          document.getElementById("viewFullName").textContent = user.fullname;
+          document.getElementById("viewAddress").textContent = user.address;
+          document.getElementById("viewContact").textContent = user.phone_number || 'N/A';
+          document.getElementById("viewEmail").textContent = user.email;
+          document.getElementById(
+            "viewRole"
+          ).innerHTML = `<span class="badge ${getRoleBadgeClass(user.role)}">${
+            user.role
+          }</span>`;
+          document.getElementById("viewStatus").innerHTML = `<span class="badge ${
+            user.status.toLowerCase() === "active" ? "bg-success" : "bg-secondary"
+          }">${user.status}</span>`;
 
-        const modal = new bootstrap.Modal(
-          document.getElementById("viewUserModal")
-        );
-        modal.show();
+          const modal = new bootstrap.Modal(
+            document.getElementById("viewUserModal")
+          );
+          modal.show();
+        } catch (error) {
+          console.error('Error loading user:', error);
+          showAlert("Failed to load user details", "danger");
+        }
       }
 
-      
+      function showAlert(message, type = 'info') {
+        // Create alert element
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+        alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+        alertDiv.innerHTML = `
+          ${message}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        document.body.appendChild(alertDiv);
+        
+        // Auto remove after 5 seconds
+        setTimeout(() => {
+          alertDiv.remove();
+        }, 5000);
+      }
     </script>
   </body>
 </html>

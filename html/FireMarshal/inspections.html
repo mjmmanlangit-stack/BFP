@@ -440,84 +440,56 @@
       let map;
       let marker;
       let currentInspectionId;
-      let inspections = [
-        {
-          id: 1,
-          regNo: "BFP-2025-001",
-          businessName: "Metro Shopping Mall",
-          ownerName: "Juan dela Cruz",
-          businessType: "Shopping Center",
-          address: "Main Street, Masbate City, Masbate",
-          lat: 12.3685,
-          lng: 123.6174,
-          defects: "None - All fire safety equipment operational",
-          gracePeriod: "N/A",
-          status: "compliant",
-          payment: "paid",
-          authorized: null,
-        },
-        {
-          id: 2,
-          regNo: "BFP-2025-002",
-          businessName: "Sunrise Hotel & Restaurant",
-          ownerName: "Maria Santos",
-          businessType: "Hotel",
-          address: "Quezon Street, Masbate City, Masbate",
-          lat: 12.365,
-          lng: 123.62,
-          defects:
-            "Missing fire extinguisher on 3rd floor, Emergency exit signage not illuminated",
-          gracePeriod: "30 days (Until Nov 22, 2025)",
-          status: "non-compliant",
-          payment: "unpaid",
-          authorized: null,
-        },
-        {
-          id: 3,
-          regNo: "BFP-2025-003",
-          businessName: "TechHub Coworking Space",
-          ownerName: "Pedro Reyes",
-          businessType: "Office Space",
-          address: "Rizal Avenue, Masbate City, Masbate",
-          lat: 12.37,
-          lng: 123.615,
-          defects: "None - All requirements met",
-          gracePeriod: "N/A",
-          status: "compliant",
-          payment: "paid",
-          authorized: null,
-        },
-        {
-          id: 4,
-          regNo: "BFP-2025-004",
-          businessName: "Golden Dragon Restaurant",
-          ownerName: "Li Wei Chen",
-          businessType: "Restaurant",
-          address: "Bonifacio Street, Masbate City, Masbate",
-          lat: 12.372,
-          lng: 123.618,
-          defects: "Kitchen fire suppression system needs maintenance",
-          gracePeriod: "15 days (Until Nov 7, 2025)",
-          status: "non-compliant",
-          payment: "paid",
-          authorized: null,
-        },
-        {
-          id: 5,
-          regNo: "BFP-2025-005",
-          businessName: "Masbate General Hospital",
-          ownerName: "Dr. Rosa Martinez",
-          businessType: "Hospital",
-          address: "Provincial Road, Masbate City, Masbate",
-          lat: 12.366,
-          lng: 123.622,
-          defects: "None - Fully compliant with hospital safety standards",
-          gracePeriod: "N/A",
-          status: "compliant",
-          payment: "paid",
-          authorized: null,
-        },
-      ];
+      let inspections = [];
+
+      // Load inspections from database
+      async function loadInspections() {
+        try {
+          const response = await fetch('../../utility/getFireMarshalInspections.php');
+          const data = await response.json();
+          
+          if (data.success) {
+            inspections = data.inspections.map(insp => ({
+              id: insp.id,
+              reportId: insp.reportId,
+              regNo: insp.regNo,
+              businessName: insp.businessName,
+              ownerName: insp.ownerName,
+              businessType: insp.businessType,
+              address: insp.address,
+              lat: parseFloat(insp.lat) || 12.3685,
+              lng: parseFloat(insp.lng) || 123.6174,
+              defects: insp.defects,
+              defectDetails: insp.defectDetails || [],
+              gracePeriod: insp.defectDetails.length > 0 ? insp.defectDetails[0].gracePeriod : 'N/A',
+              status: insp.status,
+              payment: insp.payment,
+              inspectorNotes: insp.inspectorNotes || '',
+              authorized: insp.authorization ? (insp.authorization.status === 'authorized' ? true : insp.authorization.status === 'denied' ? false : null) : null,
+              authorizationData: insp.authorization
+            }));
+            renderTable();
+          } else {
+            console.error('Failed to load inspections:', data.message);
+            showAlert('Failed to load inspections. Please refresh the page.', 'danger');
+          }
+        } catch (error) {
+          console.error('Error loading inspections:', error);
+          showAlert('An error occurred while loading inspections.', 'danger');
+        }
+      }
+
+      function showAlert(message, type = 'info') {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3`;
+        alertDiv.style.zIndex = '9999';
+        alertDiv.innerHTML = `
+          ${message}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        document.body.appendChild(alertDiv);
+        setTimeout(() => alertDiv.remove(), 5000);
+      }
 
       function renderTable() {
         const tbody = document.getElementById("inspectionTable");
@@ -609,15 +581,40 @@
         const authButtons = document.getElementById("authorizationButtons");
 
         if (inspection.authorized === true) {
-          authStatus.innerHTML =
-            '<div class="alert alert-success"><i class="fas fa-check-circle"></i> Certificate Release Authorized</div>';
+          const certNumber = inspection.authorizationData?.certificateNumber || 'N/A';
+          authStatus.innerHTML = `
+            <div class="alert alert-success">
+              <i class="fas fa-check-circle"></i> Certificate Release Authorized
+              <br><strong>Certificate Number:</strong> ${certNumber}
+            </div>`;
           authButtons.style.display = "none";
         } else if (inspection.authorized === false) {
           authStatus.innerHTML =
             '<div class="alert alert-danger"><i class="fas fa-times-circle"></i> Certificate Release Denied</div>';
           authButtons.style.display = "none";
         } else {
-          authStatus.innerHTML = "";
+          // Show eligibility warning for non-compliant establishments
+          if (inspection.status !== 'compliant' && inspection.status !== 'partially_compliant') {
+            authStatus.innerHTML = `
+              <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle"></i> 
+                <strong>Note:</strong> This establishment is non-compliant. 
+                Authorization should only be granted after all defects are resolved.
+              </div>`;
+          } else if (inspection.payment === 'unpaid') {
+            authStatus.innerHTML = `
+              <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i> 
+                <strong>Note:</strong> Payment status is unpaid. 
+                Verify payment before authorization.
+              </div>`;
+          } else {
+            authStatus.innerHTML = `
+              <div class="alert alert-success">
+                <i class="fas fa-check-circle"></i> 
+                <strong>Eligible for Authorization:</strong> This establishment meets all requirements.
+              </div>`;
+          }
           authButtons.style.display = "block";
         }
 
@@ -644,36 +641,99 @@
         }, 200);
       }
 
-      function authorizeCertificate() {
-        const inspection = inspections.find(
-          (i) => i.id === currentInspectionId
-        );
-        inspection.authorized = true;
-
+      async function authorizeCertificate() {
         const authStatus = document.getElementById("authorizationStatus");
         const authButtons = document.getElementById("authorizationButtons");
-
-        authStatus.innerHTML =
-          '<div class="alert alert-success"><i class="fas fa-check-circle"></i> Certificate Release Authorized Successfully!</div>';
-        authButtons.style.display = "none";
-
-        renderTable();
+        
+        // Show loading state
+        authButtons.innerHTML = '<div class="spinner-border text-success" role="status"><span class="visually-hidden">Loading...</span></div>';
+        
+        try {
+          const response = await fetch('../../utility/authorizeCertificate.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              inspectionId: currentInspectionId,
+              action: 'authorize',
+              remarks: 'Certificate release authorized by Fire Marshal'
+            })
+          });
+          
+          const data = await response.json();
+          
+          if (data.success) {
+            // Update local data
+            const inspection = inspections.find(i => i.id === currentInspectionId);
+            if (inspection) {
+              inspection.authorized = true;
+              inspection.authorizationData = {
+                status: 'authorized',
+                certificateNumber: data.certificateNumber
+              };
+            }
+            
+            authStatus.innerHTML = `
+              <div class="alert alert-success">
+                <i class="fas fa-check-circle"></i> Certificate Release Authorized Successfully!
+                <br><strong>Certificate Number:</strong> ${data.certificateNumber}
+              </div>`;
+            authButtons.style.display = "none";
+            
+            renderTable();
+            showAlert('Certificate authorized successfully!', 'success');
+          } else {
+            throw new Error(data.message || 'Failed to authorize certificate');
+          }
+        } catch (error) {
+          console.error('Error authorizing certificate:', error);
+          authStatus.innerHTML = `<div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> Error: ${error.message}</div>`;
+          authButtons.style.display = "block";
+          showAlert('Failed to authorize certificate. Please try again.', 'danger');
+        }
       }
 
-      function denyCertificate() {
-        const inspection = inspections.find(
-          (i) => i.id === currentInspectionId
-        );
-        inspection.authorized = false;
-
+      async function denyCertificate() {
         const authStatus = document.getElementById("authorizationStatus");
         const authButtons = document.getElementById("authorizationButtons");
-
-        authStatus.innerHTML =
-          '<div class="alert alert-danger"><i class="fas fa-times-circle"></i> Certificate Release Denied</div>';
-        authButtons.style.display = "none";
-
-        renderTable();
+        
+        // Show loading state
+        authButtons.innerHTML = '<div class="spinner-border text-danger" role="status"><span class="visually-hidden">Loading...</span></div>';
+        
+        try {
+          const response = await fetch('../../utility/authorizeCertificate.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              inspectionId: currentInspectionId,
+              action: 'deny',
+              remarks: 'Certificate release denied by Fire Marshal'
+            })
+          });
+          
+          const data = await response.json();
+          
+          if (data.success) {
+            // Update local data
+            const inspection = inspections.find(i => i.id === currentInspectionId);
+            if (inspection) {
+              inspection.authorized = false;
+              inspection.authorizationData = { status: 'denied' };
+            }
+            
+            authStatus.innerHTML = '<div class="alert alert-danger"><i class="fas fa-times-circle"></i> Certificate Release Denied</div>';
+            authButtons.style.display = "none";
+            
+            renderTable();
+            showAlert('Certificate denied.', 'info');
+          } else {
+            throw new Error(data.message || 'Failed to deny certificate');
+          }
+        } catch (error) {
+          console.error('Error denying certificate:', error);
+          authStatus.innerHTML = `<div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> Error: ${error.message}</div>`;
+          authButtons.style.display = "block";
+          showAlert('Failed to deny certificate. Please try again.', 'danger');
+        }
       }
 
       function filterTable(filter) {
@@ -706,7 +766,9 @@
         });
 
       // Initialize table on load
-      renderTable();
+      document.addEventListener('DOMContentLoaded', function() {
+        loadInspections();
+      });
     </script>
   </body>
 </html>

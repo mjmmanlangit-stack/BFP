@@ -1,3 +1,12 @@
+<?php
+session_start();
+
+// Check if user is logged in and is an inspector
+if (!isset($_SESSION['user']) || $_SESSION['role'] !== 'inspector') {
+    header('Location: ../index.php');
+    exit;
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -166,6 +175,27 @@
         margin-bottom: 1rem;
       }
 
+      .defect-entry {
+        background-color: white;
+        padding: 1rem;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        margin-bottom: 1rem;
+        position: relative;
+      }
+
+      .defect-entry .remove-defect {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+      }
+
+      .defect-number {
+        font-weight: bold;
+        color: var(--bfp-dark-red);
+        margin-bottom: 0.5rem;
+      }
+
       @media (max-width: 768px) {
         .table-container {
           overflow-x: auto;
@@ -212,7 +242,7 @@
       </nav>
 
       <div class="nav-item">
-        <a href="../index.php" class="nav-link">
+        <a href="../../utility/logout.php" class="nav-link">
           <i class="fas fa-sign-out-alt"></i>
           Logout
         </a>
@@ -375,35 +405,28 @@
                     required
                   />
                 </div>
+                
                 <div class="mb-3">
-                  <label for="defects" class="form-label"
-                    >Defects/Deficiencies
-                    <span class="text-danger">*</span></label
-                  >
-                  <textarea
-                    class="form-control"
-                    id="defects"
-                    rows="4"
-                    required
-                    placeholder="List all defects and deficiencies found during inspection..."
-                  ></textarea>
+                  <label class="form-label">
+                    Defects/Deficiencies
+                    <span class="text-danger">*</span>
+                  </label>
+                  <div id="defectsContainer">
+                    <!-- Defect entries will be added here -->
+                  </div>
+                  <button type="button" class="btn btn-sm btn-outline-primary mt-2" onclick="addDefectEntry()">
+                    <i class="fas fa-plus"></i> Add Another Defect
+                  </button>
                 </div>
-                <div class="mb-3">
-                  <label for="gracePeriod" class="form-label"
-                    >Grace Period (in days)
-                    <span class="text-danger">*</span></label
-                  >
-                  <input
-                    type="number"
-                    class="form-control"
-                    id="gracePeriod"
-                    required
-                    min="1"
-                  />
+
+                <div class="d-grid gap-2">
+                  <button type="submit" class="btn btn-bfp-primary">
+                    <i class="fas fa-paper-plane"></i> Submit Report
+                  </button>
+                  <button type="button" class="btn btn-outline-secondary" id="viewExistingReport" style="display: none;">
+                    <i class="fas fa-file-alt"></i> View Existing Report
+                  </button>
                 </div>
-                <button type="submit" class="btn btn-bfp-primary w-100">
-                  <i class="fas fa-paper-plane"></i> Submit Report
-                </button>
               </form>
             </div>
           </div>
@@ -414,62 +437,44 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-      // Sample data for inspections
-      let inspections = [
-        {
-          id: 1,
-          viewed: false,
-          businessName: "ABC Shopping Mall",
-          businessType: "Commercial",
-          inspectionDate: "2025-10-25",
-          inspectionTime: "09:00 AM",
-          address: "123 Main Street, Masbate City, Masbate",
-          regNo: "BFP-2025-001",
-          latitude: 12.3685,
-          longitude: 123.6208,
-        },
-        {
-          id: 2,
-          viewed: false,
-          businessName: "XYZ Hotel & Resort",
-          businessType: "Hospitality",
-          inspectionDate: "2025-10-26",
-          inspectionTime: "02:00 PM",
-          address: "456 Beach Road, Masbate City, Masbate",
-          regNo: "BFP-2025-002",
-          latitude: 12.3705,
-          longitude: 123.6228,
-        },
-        {
-          id: 3,
-          viewed: true,
-          businessName: "DEF Manufacturing Corp",
-          businessType: "Industrial",
-          inspectionDate: "2025-10-23",
-          inspectionTime: "10:30 AM",
-          address: "789 Industrial Park, Masbate City, Masbate",
-          regNo: "BFP-2025-003",
-          latitude: 12.3665,
-          longitude: 123.6188,
-        },
-        {
-          id: 4,
-          viewed: false,
-          businessName: "GHI Restaurant",
-          businessType: "Food Service",
-          inspectionDate: "2025-10-27",
-          inspectionTime: "11:00 AM",
-          address: "321 Food Street, Masbate City, Masbate",
-          regNo: "BFP-2025-004",
-          latitude: 12.3695,
-          longitude: 123.6218,
-        },
-      ];
-
+      let inspections = [];
       let map;
       let marker;
       let currentFilter = "all";
       let currentInspectionId = null;
+      let defectCounter = 0;
+
+      // Load inspections from backend
+      async function loadInspections() {
+        try {
+          const response = await fetch('../../utility/getInspectorAssignments.php');
+          const data = await response.json();
+
+          if (data.success) {
+            inspections = data.inspections;
+            renderTable();
+          } else {
+            showAlert('Error loading inspections: ' + data.message, 'danger');
+          }
+        } catch (error) {
+          console.error('Error:', error);
+          showAlert('Failed to load inspections', 'danger');
+        }
+      }
+
+      function showAlert(message, type = 'info') {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+        alertDiv.innerHTML = `
+          ${message}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        document.querySelector('.main-container').insertBefore(alertDiv, document.querySelector('.page-header').nextSibling);
+        
+        setTimeout(() => {
+          alertDiv.remove();
+        }, 5000);
+      }
 
       function renderTable() {
         const tbody = document.getElementById("inspectionTableBody");
@@ -525,15 +530,93 @@
         }
       }
 
-      function viewInspection(id) {
+      function addDefectEntry(details = '', gracePeriod = '') {
+        defectCounter++;
+        const container = document.getElementById('defectsContainer');
+        const entryDiv = document.createElement('div');
+        entryDiv.className = 'defect-entry';
+        entryDiv.id = `defect-${defectCounter}`;
+        
+        entryDiv.innerHTML = `
+          ${defectCounter > 1 ? `<button type="button" class="btn btn-sm btn-danger remove-defect" onclick="removeDefectEntry(${defectCounter})">
+            <i class="fas fa-times"></i>
+          </button>` : ''}
+          <div class="defect-number">Defect #${defectCounter}</div>
+          <div class="mb-2">
+            <label class="form-label">Defect Details <span class="text-danger">*</span></label>
+            <textarea class="form-control defect-details" rows="3" required 
+              placeholder="Describe the defect or deficiency found...">${details}</textarea>
+          </div>
+          <div class="mb-2">
+            <label class="form-label">Grace Period Date <span class="text-danger">*</span></label>
+            <input type="date" class="form-control defect-grace-period" required value="${gracePeriod}">
+          </div>
+        `;
+        
+        container.appendChild(entryDiv);
+      }
+
+      function removeDefectEntry(id) {
+        const entry = document.getElementById(`defect-${id}`);
+        if (entry) {
+          entry.remove();
+          updateDefectNumbers();
+        }
+      }
+
+      function updateDefectNumbers() {
+        const entries = document.querySelectorAll('.defect-entry');
+        entries.forEach((entry, index) => {
+          const numberDiv = entry.querySelector('.defect-number');
+          if (numberDiv) {
+            numberDiv.textContent = `Defect #${index + 1}`;
+          }
+        });
+      }
+
+      function clearDefects() {
+        document.getElementById('defectsContainer').innerHTML = '';
+        defectCounter = 0;
+      }
+
+      async function loadExistingReport(inspectionId) {
+        try {
+          const response = await fetch(`../../utility/getInspectionReport.php?inspectionId=${inspectionId}`);
+          const data = await response.json();
+
+          if (data.success && data.hasReport) {
+            document.getElementById('inspectionOrderNo').value = data.inspectionOrderNo;
+            
+            clearDefects();
+            if (data.defects && data.defects.length > 0) {
+              data.defects.forEach(defect => {
+                addDefectEntry(defect.details, defect.gracePeriod);
+              });
+            } else {
+              addDefectEntry();
+            }
+            
+            document.getElementById('viewExistingReport').style.display = 'block';
+            return true;
+          } else {
+            clearDefects();
+            addDefectEntry();
+            document.getElementById('viewExistingReport').style.display = 'none';
+            return false;
+          }
+        } catch (error) {
+          console.error('Error loading report:', error);
+          clearDefects();
+          addDefectEntry();
+          return false;
+        }
+      }
+
+      async function viewInspection(id) {
         const inspection = inspections.find((i) => i.id === id);
         if (!inspection) return;
 
         currentInspectionId = id;
-
-        // Mark as viewed
-        inspection.viewed = true;
-        renderTable();
 
         // Populate modal
         document.getElementById("modalInspectionDate").textContent =
@@ -551,6 +634,9 @@
           inspection.latitude;
         document.getElementById("modalLongitude").textContent =
           inspection.longitude;
+
+        // Load existing report if available
+        await loadExistingReport(id);
 
         // Show modal
         const modal = new bootstrap.Modal(
@@ -592,29 +678,89 @@
       });
 
       // Report form submission
-      document.getElementById("reportForm").addEventListener("submit", (e) => {
+      document.getElementById("reportForm").addEventListener("submit", async (e) => {
         e.preventDefault();
 
-        const orderNo = document.getElementById("inspectionOrderNo").value;
-        const defects = document.getElementById("defects").value;
-        const gracePeriod = document.getElementById("gracePeriod").value;
+        const orderNo = document.getElementById("inspectionOrderNo").value.trim();
+        
+        // Collect all defects
+        const defectEntries = document.querySelectorAll('.defect-entry');
+        const defects = [];
+        
+        let hasError = false;
+        defectEntries.forEach(entry => {
+          const details = entry.querySelector('.defect-details').value.trim();
+          const gracePeriod = entry.querySelector('.defect-grace-period').value;
+          
+          if (!details || !gracePeriod) {
+            hasError = true;
+            return;
+          }
+          
+          defects.push({
+            details: details,
+            gracePeriod: gracePeriod
+          });
+        });
 
-        // Here you would typically send this data to your backend
-        alert(
-          `Report Submitted!\n\nInspection Order No: ${orderNo}\nDefects: ${defects}\nGrace Period: ${gracePeriod} days`
-        );
+        if (hasError) {
+          showAlert('Please fill in all defect fields', 'warning');
+          return;
+        }
 
-        // Reset form
-        document.getElementById("reportForm").reset();
+        if (defects.length === 0) {
+          showAlert('Please add at least one defect', 'warning');
+          return;
+        }
 
-        // Close modal
-        bootstrap.Modal.getInstance(
-          document.getElementById("inspectionModal")
-        ).hide();
+        try {
+          const response = await fetch('../../utility/submitInspectionReport.php', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              inspectionId: currentInspectionId,
+              inspectionOrderNo: orderNo,
+              defects: defects
+            })
+          });
+
+          const data = await response.json();
+
+          if (data.success) {
+            showAlert('Inspection report submitted successfully!', 'success');
+            
+            // Reset form
+            document.getElementById("reportForm").reset();
+            clearDefects();
+            addDefectEntry();
+
+            // Close modal
+            bootstrap.Modal.getInstance(
+              document.getElementById("inspectionModal")
+            ).hide();
+
+            // Reload inspections
+            await loadInspections();
+          } else {
+            showAlert('Error: ' + data.message, 'danger');
+          }
+        } catch (error) {
+          console.error('Error:', error);
+          showAlert('Failed to submit report', 'danger');
+        }
       });
 
-      // Initial render
-      renderTable();
+      // View existing report button
+      document.getElementById('viewExistingReport').addEventListener('click', async () => {
+        if (currentInspectionId) {
+          await loadExistingReport(currentInspectionId);
+        }
+      });
+
+      // Initial load
+      loadInspections();
     </script>
   </body>
 </html>

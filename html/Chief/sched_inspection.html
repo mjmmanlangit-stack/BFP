@@ -174,6 +174,61 @@
         border-color: var(--bfp-dark-red);
         box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
       }
+
+      .badge-scheduled {
+        background-color: #28a745;
+        color: white;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        margin-left: 8px;
+      }
+
+      .badge-pending {
+        background-color: #ffc107;
+        color: var(--bfp-dark);
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        margin-left: 8px;
+      }
+
+      .inspection-info-box {
+        background-color: #d4edda;
+        border: 1px solid #c3e6cb;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 20px;
+      }
+
+      .inspection-info-box h6 {
+        color: #155724;
+        margin-bottom: 10px;
+        font-weight: 600;
+      }
+
+      .inspection-info-box p {
+        margin-bottom: 5px;
+        color: #155724;
+      }
+
+      .btn-cancel-inspection {
+        background-color: #dc3545;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 5px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+      }
+
+      .btn-cancel-inspection:hover {
+        background-color: #c82333;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      }
     </style>
   </head>
   <body>
@@ -269,6 +324,18 @@
             ></button>
           </div>
           <div class="modal-body">
+            <!-- Inspection Status Box (shown if inspection exists) -->
+            <div id="inspectionInfoBox" class="inspection-info-box" style="display: none;">
+              <h6><i class="fas fa-calendar-check me-2"></i>Inspection Already Scheduled</h6>
+              <p><strong>Inspection Date:</strong> <span id="existingInspectionDate"></span></p>
+              <p><strong>Inspector 1:</strong> <span id="existingInspector1"></span></p>
+              <p><strong>Inspector 2:</strong> <span id="existingInspector2"></span></p>
+              <p><strong>Status:</strong> <span id="existingInspectionStatus"></span></p>
+              <button class="btn btn-cancel-inspection mt-2" onclick="cancelInspection()">
+                <i class="fas fa-times-circle me-2"></i>Cancel Inspection
+              </button>
+            </div>
+
             <div class="row">
               <div class="col-md-6">
                 <div class="info-label">Business Name</div>
@@ -296,6 +363,17 @@
               <div class="col-md-12">
                 <div class="info-label">Address</div>
                 <div class="info-value" id="modalAddress"></div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-6">
+                <div class="info-label">Owner Name</div>
+                <div class="info-value" id="modalOwnerName"></div>
+              </div>
+              <div class="col-md-6">
+                <div class="info-label">Owner Contact</div>
+                <div class="info-value" id="modalOwnerContact"></div>
               </div>
             </div>
 
@@ -376,144 +454,191 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
     <script>
-      // Sample data for establishments
-      const establishments = [
-        {
-          id: 1,
-          businessName: "Grand Hotel Manila",
-          regNo: "BFP-2024-001",
-          businessType: "Hotel",
-          address: "123 Rizal Avenue, Manila City",
-          lat: 14.5995,
-          lng: 120.9842,
-        },
-        {
-          id: 2,
-          businessName: "MegaMall Shopping Center",
-          regNo: "BFP-2024-002",
-          businessType: "Shopping Mall",
-          address: "456 EDSA, Mandaluyong City",
-          lat: 14.5833,
-          lng: 121.0561,
-        },
-        {
-          id: 3,
-          businessName: "City Hospital",
-          regNo: "BFP-2024-003",
-          businessType: "Hospital",
-          address: "789 Medical Drive, Quezon City",
-          lat: 14.676,
-          lng: 121.0437,
-        },
-        {
-          id: 4,
-          businessName: "Tech Tower Business Center",
-          regNo: "BFP-2024-004",
-          businessType: "Office Building",
-          address: "321 Ayala Avenue, Makati City",
-          lat: 14.5547,
-          lng: 121.0244,
-        },
-        {
-          id: 5,
-          businessName: "Central Market Complex",
-          regNo: "BFP-2024-005",
-          businessType: "Market",
-          address: "555 Market Street, Pasig City",
-          lat: 14.5764,
-          lng: 121.0851,
-        },
-      ];
-
-      // Sample inspectors
-      const inspectors = [
-        { id: 1, name: "Inspector Juan dela Cruz" },
-        { id: 2, name: "Inspector Maria Santos" },
-        { id: 3, name: "Inspector Pedro Reyes" },
-        { id: 4, name: "Inspector Ana Garcia" },
-        { id: 5, name: "Inspector Jose Fernandez" },
-      ];
-
+      let establishments = [];
+      let inspectors = [];
       let map;
       let marker;
       let currentEstablishment = null;
 
       // Initialize the page
-      function init() {
-        loadEstablishments();
-        loadInspectors();
+      async function init() {
+        await loadEstablishments();
+        await loadInspectors();
         setupSearch();
       }
 
-      // Load establishments into table
-      function loadEstablishments() {
+      // Load establishments from backend (only accepted/active status)
+      async function loadEstablishments() {
+        try {
+          const response = await fetch('../../utility/getAcceptedEstablishments.php');
+          const data = await response.json();
+          
+          if (Array.isArray(data)) {
+            establishments = data;
+            renderEstablishments();
+          } else {
+            console.error('Invalid data format received');
+            showAlert('Error loading establishments', 'danger');
+          }
+        } catch (error) {
+          console.error('Error loading establishments:', error);
+          showAlert('Failed to load establishments', 'danger');
+        }
+      }
+
+      // Render establishments in table
+      function renderEstablishments() {
         const tbody = document.getElementById("establishmentTable");
         tbody.innerHTML = "";
 
+        if (establishments.length === 0) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="5" class="text-center py-4">
+                <i class="fas fa-inbox fa-3x mb-3 text-muted"></i>
+                <p class="text-muted">No accepted establishments found</p>
+              </td>
+            </tr>
+          `;
+          return;
+        }
+
         establishments.forEach((est) => {
-          const row = `
-                    <tr>
-                        <td><strong>${est.businessName}</strong></td>
-                        <td>${est.regNo}</td>
-                        <td><span class="badge-business-type">${est.businessType}</span></td>
-                        <td>${est.address}</td>
-                        <td>
-                            <button class="btn btn-view btn-sm" onclick="viewEstablishment(${est.id})">
-                                <i class="fas fa-eye me-1"></i>View
-                            </button>
-                        </td>
-                    </tr>
-                `;
-          tbody.innerHTML += row;
+          const row = document.createElement('tr');
+          
+          // Add inspection badge if scheduled
+          const inspectionBadge = est.has_inspection 
+            ? `<span class="badge-scheduled"><i class="fas fa-check-circle me-1"></i>Scheduled</span>` 
+            : '';
+          
+          row.innerHTML = `
+            <td><strong>${est.name}</strong>${inspectionBadge}</td>
+            <td>${est.registration_no}</td>
+            <td><span class="badge-business-type">${est.type}</span></td>
+            <td>${est.address}</td>
+            <td>
+              <button class="btn btn-view btn-sm" onclick="viewEstablishment(${est.id})">
+                <i class="fas fa-eye me-1"></i>View
+              </button>
+            </td>
+          `;
+          tbody.appendChild(row);
         });
       }
 
-      // Load inspectors into select
-      function loadInspectors() {
-        const select = document.getElementById("inspectorSelect");
+      // Load inspectors from backend
+      async function loadInspectors() {
+        try {
+          const response = await fetch('../../utility/getInspector.php');
+          const data = await response.json();
+          
+          if (Array.isArray(data)) {
+            inspectors = data;
+            populateInspectorSelects();
+          } else {
+            console.error('Invalid inspector data received');
+            showAlert('Error loading inspectors', 'danger');
+          }
+        } catch (error) {
+          console.error('Error loading inspectors:', error);
+          showAlert('Failed to load inspectors', 'danger');
+        }
+      }
+
+      // Populate both inspector select dropdowns
+      function populateInspectorSelects() {
+        const select1 = document.getElementById("inspectorSelect1");
+        const select2 = document.getElementById("inspectorSelect2");
+        
+        // Clear existing options except the first one
+        select1.innerHTML = '<option value="">Select first inspector...</option>';
+        select2.innerHTML = '<option value="">Select second inspector...</option>';
+        
         inspectors.forEach((inspector) => {
-          const option = document.createElement("option");
-          option.value = inspector.id;
-          option.textContent = inspector.name;
-          select.appendChild(option);
+          const option1 = document.createElement("option");
+          option1.value = inspector.id;
+          option1.textContent = inspector.fullname;
+          select1.appendChild(option1);
+          
+          const option2 = document.createElement("option");
+          option2.value = inspector.id;
+          option2.textContent = inspector.fullname;
+          select2.appendChild(option2);
         });
       }
 
       // Setup search functionality
       function setupSearch() {
-        document
-          .getElementById("searchInput")
-          .addEventListener("input", function (e) {
-            const searchTerm = e.target.value.toLowerCase();
-            const rows = document.querySelectorAll("#establishmentTable tr");
+        document.getElementById("searchInput").addEventListener("input", function (e) {
+          const searchTerm = e.target.value.toLowerCase();
+          const rows = document.querySelectorAll("#establishmentTable tr");
 
-            rows.forEach((row) => {
-              const text = row.textContent.toLowerCase();
-              row.style.display = text.includes(searchTerm) ? "" : "none";
-            });
+          rows.forEach((row) => {
+            const text = row.textContent.toLowerCase();
+            row.style.display = text.includes(searchTerm) ? "" : "none";
           });
+        });
       }
 
       // View establishment details
       function viewEstablishment(id) {
         currentEstablishment = establishments.find((e) => e.id === id);
+        
+        if (!currentEstablishment) {
+          showAlert('Establishment not found', 'danger');
+          return;
+        }
 
-        document.getElementById("modalBusinessName").textContent =
-          currentEstablishment.businessName;
-        document.getElementById("modalRegNo").textContent =
-          currentEstablishment.regNo;
-        document.getElementById("modalBusinessType").textContent =
-          currentEstablishment.businessType;
-        document.getElementById("modalAddress").textContent =
-          currentEstablishment.address;
-        document.getElementById("modalLat").textContent =
-          currentEstablishment.lat.toFixed(6);
-        document.getElementById("modalLng").textContent =
-          currentEstablishment.lng.toFixed(6);
+        document.getElementById("modalBusinessName").textContent = currentEstablishment.name;
+        document.getElementById("modalRegNo").textContent = currentEstablishment.registration_no;
+        document.getElementById("modalBusinessType").textContent = currentEstablishment.type;
+        document.getElementById("modalAddress").textContent = currentEstablishment.address;
+        document.getElementById("modalOwnerName").textContent = currentEstablishment.owner_name || 'N/A';
+        document.getElementById("modalOwnerContact").textContent = currentEstablishment.owner_contact || 'N/A';
+        document.getElementById("modalLat").textContent = currentEstablishment.lat.toFixed(6);
+        document.getElementById("modalLng").textContent = currentEstablishment.lng.toFixed(6);
+
+        // Show/hide inspection info box
+        const inspectionInfoBox = document.getElementById("inspectionInfoBox");
+        const scheduleBtn = document.getElementById("scheduleBtn");
+        
+        if (currentEstablishment.has_inspection) {
+          // Show inspection info
+          inspectionInfoBox.style.display = "block";
+          scheduleBtn.style.display = "none";
+          
+          // Format date
+          const inspectionDate = new Date(currentEstablishment.inspection_date);
+          const formattedDate = inspectionDate.toLocaleString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          });
+          
+          document.getElementById("existingInspectionDate").textContent = formattedDate;
+          document.getElementById("existingInspector1").textContent = currentEstablishment.inspector1_name || 'N/A';
+          document.getElementById("existingInspector2").textContent = currentEstablishment.inspector2_name || 'N/A';
+          
+          const statusText = currentEstablishment.inspection_status === 'status-pen' ? 'Pending' : 
+                            currentEstablishment.inspection_status === 'approved' ? 'Approved' : 
+                            currentEstablishment.inspection_status;
+          document.getElementById("existingInspectionStatus").textContent = statusText;
+        } else {
+          // No inspection, show schedule button
+          inspectionInfoBox.style.display = "none";
+          scheduleBtn.style.display = "block";
+        }
 
         // Reset schedule form
         document.getElementById("scheduleForm").style.display = "none";
-        document.getElementById("scheduleBtn").style.display = "block";
+        
+        // Clear form
+        document.getElementById("inspectionDate").value = "";
+        document.getElementById("inspectionTime").value = "";
+        document.getElementById("inspectorSelect1").value = "";
+        document.getElementById("inspectorSelect2").value = "";
 
         // Show modal
         const modal = new bootstrap.Modal(document.getElementById("viewModal"));
@@ -539,7 +664,7 @@
 
         marker = L.marker([lat, lng])
           .addTo(map)
-          .bindPopup(currentEstablishment.businessName)
+          .bindPopup(currentEstablishment.name)
           .openPopup();
       }
 
@@ -554,43 +679,156 @@
       }
 
       // Confirm inspection
-      function confirmInspection() {
+      async function confirmInspection() {
         const date = document.getElementById("inspectionDate").value;
         const time = document.getElementById("inspectionTime").value;
-        const inspectorId = document.getElementById("inspectorSelect").value;
-        const notes = document.getElementById("inspectionNotes").value;
+        const inspector1Id = document.getElementById("inspectorSelect1").value;
+        const inspector2Id = document.getElementById("inspectorSelect2").value;
 
-        if (!date || !time || !inspectorId) {
-          alert("Please fill in all required fields!");
+        // Validation
+        if (!date || !time || !inspector1Id || !inspector2Id) {
+          showAlert("Please fill in all required fields!", "warning");
           return;
         }
 
-        const inspector = inspectors.find((i) => i.id == inspectorId);
+        if (inspector1Id === inspector2Id) {
+          showAlert("Please select two different inspectors!", "warning");
+          return;
+        }
 
-        alert(
-          `Inspection Scheduled Successfully!\n\nEstablishment: ${
-            currentEstablishment.businessName
-          }\nDate: ${date}\nTime: ${time}\nInspector: ${
-            inspector.name
-          }\nNotes: ${notes || "None"}`
-        );
+        // Confirm with user
+        const inspector1 = inspectors.find((i) => i.id == inspector1Id);
+        const inspector2 = inspectors.find((i) => i.id == inspector2Id);
+        
+        if (!confirm(`Schedule inspection for ${currentEstablishment.name}?\n\nDate: ${date}\nTime: ${time}\nInspector 1: ${inspector1.fullname}\nInspector 2: ${inspector2.fullname}`)) {
+          return;
+        }
 
-        // Reset form
-        document.getElementById("inspectionDate").value = "";
-        document.getElementById("inspectionTime").value = "";
-        document.getElementById("inspectorSelect").value = "";
-        document.getElementById("inspectionNotes").value = "";
-        document.getElementById("scheduleForm").style.display = "none";
-        document.getElementById("scheduleBtn").style.display = "block";
+        // Prepare data
+        const inspectionData = {
+          establishment_id: currentEstablishment.id,
+          inspector1_id: inspector1Id,
+          inspector2_id: inspector2Id,
+          inspection_date: date,
+          inspection_time: time
+        };
 
-        // Close modal
-        bootstrap.Modal.getInstance(
-          document.getElementById("viewModal")
-        ).hide();
+        try {
+          const response = await fetch('../../utility/scheduleInspection.php', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(inspectionData)
+          });
+
+          // Check if response is ok
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+
+          // Get response text first
+          const responseText = await response.text();
+          
+          // Try to parse as JSON
+          let result;
+          try {
+            result = JSON.parse(responseText);
+          } catch (e) {
+            console.error('Invalid JSON response:', responseText);
+            throw new Error('Server returned invalid response. Please check PHP error logs.');
+          }
+          
+          if (result.success) {
+            showAlert("Inspection scheduled successfully!", "success");
+            
+            // Reset form
+            document.getElementById("inspectionDate").value = "";
+            document.getElementById("inspectionTime").value = "";
+            document.getElementById("inspectorSelect1").value = "";
+            document.getElementById("inspectorSelect2").value = "";
+            document.getElementById("scheduleForm").style.display = "none";
+            document.getElementById("scheduleBtn").style.display = "block";
+
+            // Close modal
+            setTimeout(() => {
+              bootstrap.Modal.getInstance(document.getElementById("viewModal")).hide();
+            }, 1500);
+            
+            // Reload establishments to show updated status
+            await loadEstablishments();
+          } else {
+            showAlert(result.error || "Failed to schedule inspection", "danger");
+          }
+        } catch (error) {
+          console.error('Error scheduling inspection:', error);
+          showAlert("Failed to schedule inspection: " + error.message, "danger");
+        }
+      }
+
+      // Show alert messages
+      function showAlert(message, type = 'info') {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+        alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);';
+        alertDiv.innerHTML = `
+          ${message}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        document.body.appendChild(alertDiv);
+        
+        // Auto remove after 5 seconds
+        setTimeout(() => {
+          alertDiv.remove();
+        }, 5000);
+      }
+
+      // Cancel inspection
+      async function cancelInspection() {
+        if (!currentEstablishment || !currentEstablishment.inspection_id) {
+          showAlert('No inspection to cancel', 'warning');
+          return;
+        }
+
+        if (!confirm(`Are you sure you want to cancel the inspection for ${currentEstablishment.name}?\n\nThis action cannot be undone.`)) {
+          return;
+        }
+
+        try {
+          const response = await fetch('../../utility/cancelInspection.php', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              inspection_id: currentEstablishment.inspection_id
+            })
+          });
+
+          const result = await response.json();
+          
+          if (result.success) {
+            showAlert('Inspection cancelled successfully!', 'success');
+            
+            // Close modal
+            setTimeout(() => {
+              bootstrap.Modal.getInstance(document.getElementById("viewModal")).hide();
+            }, 1000);
+            
+            // Reload establishments to update the list
+            await loadEstablishments();
+          } else {
+            showAlert(result.error || 'Failed to cancel inspection', 'danger');
+          }
+        } catch (error) {
+          console.error('Error cancelling inspection:', error);
+          showAlert('Failed to cancel inspection. Please try again.', 'danger');
+        }
       }
 
       // Initialize on page load
-      init();
+      document.addEventListener('DOMContentLoaded', init);
     </script>
   </body>
 </html>

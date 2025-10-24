@@ -1,0 +1,284 @@
+<?php
+// Prevent any HTML output
+ini_set('display_errors', 0);
+error_reporting(0);
+
+// Start output buffering and session
+ob_start();
+session_start();
+
+// Clean buffer and set JSON header
+while (ob_get_level()) {
+    ob_end_clean();
+}
+ob_start();
+
+header('Content-Type: application/json');
+header('Cache-Control: no-cache, must-revalidate');
+
+// Include database connection
+try {
+    include_once 'db.php';
+} catch (Exception $e) {
+    echo json_encode(['success' => false, 'message' => 'Database connection failed']);
+    exit;
+}
+
+// Check if ActivityLogger exists, if not, create a simple fallback
+if (!class_exists('ActivityLogger')) {
+    class ActivityLogger {
+        private $conn;
+        public function __construct($conn) {
+            $this->conn = $conn;
+        }
+        public function log($data) {
+            // Simple logging fallback
+            try {
+                $checkTable = $this->conn->query("SHOW TABLES LIKE 'activity_log'");
+                if ($checkTable->num_rows > 0) {
+                    $stmt = $this->conn->prepare("INSERT INTO activity_log (user_id, action, module, description, status, old_values, new_values, ip_address) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                    $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+                    $stmt->bind_param("isssssss", 
+                        $data['user_id'],
+                        $data['action'],
+                        $data['module'],
+                        $data['description'],
+                        $data['status'],
+                        $data['old_values'],
+                        $data['new_values'],
+                        $ip
+                    );
+                    $stmt->execute();
+                    $stmt->close();
+                }
+            } catch (Exception $e) {
+                // Silently fail - logging is not critical
+            }
+        }
+    }
+}
+
+try {
+    // Check if user is logged in
+    if (!isset($_SESSION['user'])) {
+        echo json_encode(['success' => false, 'message' => 'Not authenticated']);
+        exit;
+    }
+
+    // Get POST data
+    $data = json_decode(file_get_contents('php://input'), true);
+    
+    if (!isset($data['inspectionId']) || !isset($data['action'])) {
+        echo json_encode(['success' => false, 'message' => 'Missing required fields']);
+        exit;
+    }
+
+    $inspectionId = intval($data['inspectionId']);
+    $action = $data['action']; // 'authorize' or 'deny'
+    $remarks = isset($data['remarks']) ? $data['remarks'] : '';
+    $fireMarshalId = $_SESSION['user'];
+
+    // Get Fire Marshal details
+    $userQuery = "SELECT fullname, email FROM user WHERE id = ?";
+    $userStmt = $conn->prepare($userQuery);
+    $userStmt->bind_param("i", $fireMarshalId);
+    $userStmt->execute();
+    $userResult = $userStmt->get_result();
+    $fireMarshal = $userResult->fetch_assoc();
+    $userStmt->close();
+
+    // Get inspection and establishment details
+    $inspQuery = "SELECT 
+                    i.id as inspection_id,
+                    i.establishment_id,
+                    i.payment,
+                    e.name as business_name,
+                    e.registration_no,
+                    owner.fullname as owner_name,
+                    owner.email as owner_email
+                  FROM inspection i
+                  INNER JOIN establishment e ON i.establishment_id = e.id
+                  LEFT JOIN user owner ON e.owner_id = owner.id
+                  WHERE i.id = ?";
+    
+    $inspStmt = $conn->prepare($inspQuery);
+    if (!$inspStmt) {
+        echo json_encode(['success' => false, 'message' => 'Database prepare error: ' . $conn->error]);
+        exit;
+    }
+    
+    $inspStmt->bind_param("i", $inspectionId);
+    $inspStmt->execute();
+    $inspResult = $inspStmt->get_result();
+    
+    if ($inspResult->num_rows === 0) {
+        echo json_encode(['success' => false, 'message' => 'Inspection not found']);
+        exit;
+    }
+    
+    $inspection = $inspResult->fetch_assoc();
+    $inspStmt->close();
+
+    // Check if report exists and get compliance info (optional validation)
+    $reportQuery = "SELECT compliance_status, finalized_at FROM reports WHERE inspection_id = ? LIMIT 1";
+    $reportStmt = $conn->prepare($reportQuery);
+    if ($reportStmt) {
+        $reportStmt->bind_param("i", $inspectionId);
+        $reportStmt->execute();
+        $reportResult = $reportStmt->get_result();
+        $report = $reportResult->fetch_assoc();
+        $reportStmt->close();
+        
+        // Add report data to inspection if exists
+        if ($report) {
+            $inspection['compliance_status'] = $report['compliance_status'];
+            $inspection['finalized_at'] = $report['finalized_at'];
+        }
+    }
+
+    // Validation: Only allow authorization for specific conditions (if authorizing)
+    if ($action === 'authorize') {
+        // Check if report exists
+        if (!isset($inspection['finalized_at']) || empty($inspection['finalized_at'])) {
+            echo json_encode([
+                'success' => false, 
+                'message' => 'Cannot authorize: Inspection report is not yet finalized. Please ask the inspector to finalize the report first.'
+            ]);
+            exit;
+        }
+
+        // Check compliance status if available
+        if (isset($inspection['compliance_status'])) {
+            $complianceStatus = strtolower($inspection['compliance_status']);
+            if ($complianceStatus === 'non_compliant') {
+                echo json_encode([
+                    'success' => false, 
+                    'message' => 'Cannot authorize: Establishment is non-compliant. All defects must be resolved first.'
+                ]);
+                exit;
+            }
+        }
+
+        // Optional: Check payment status (uncomment if payment is required)
+        // if ($inspection['payment'] != 1) {
+        //     echo json_encode([
+        //         'success' => false, 
+        //         'message' => 'Cannot authorize: Payment has not been completed'
+        //     ]);
+        //     exit;
+        // }
+    }
+
+    // Check if certificates table exists, if not create it
+    $createTableQuery = "CREATE TABLE IF NOT EXISTS `certificates` (
+        `id` INT(11) NOT NULL AUTO_INCREMENT,
+        `inspection_id` INT(11) NOT NULL,
+        `establishment_id` INT(11) NOT NULL,
+        `status` VARCHAR(20) NOT NULL COMMENT 'authorized, denied',
+        `authorized_by` INT(11) NOT NULL,
+        `authorized_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        `remarks` TEXT NULL,
+        `certificate_number` VARCHAR(50) NULL,
+        PRIMARY KEY (`id`),
+        KEY `inspection_id` (`inspection_id`),
+        KEY `establishment_id` (`establishment_id`),
+        KEY `authorized_by` (`authorized_by`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci";
+    
+    $conn->query($createTableQuery);
+
+    // Determine status
+    $status = ($action === 'authorize') ? 'authorized' : 'denied';
+    
+    // Generate certificate number if authorized
+    $certificateNumber = null;
+    if ($action === 'authorize') {
+        $year = date('Y');
+        $certificateNumber = 'BFP-FSIC-' . $year . '-' . str_pad($inspectionId, 6, '0', STR_PAD_LEFT);
+    }
+
+    // Insert certificate authorization record
+    $insertQuery = "INSERT INTO certificates 
+                    (inspection_id, establishment_id, status, authorized_by, remarks, certificate_number) 
+                    VALUES (?, ?, ?, ?, ?, ?)";
+    
+    $stmt = $conn->prepare($insertQuery);
+    $stmt->bind_param("iisiss", 
+        $inspectionId,
+        $inspection['establishment_id'],
+        $status,
+        $fireMarshalId,
+        $remarks,
+        $certificateNumber
+    );
+    
+    if ($stmt->execute()) {
+        $certificateId = $stmt->insert_id;
+        
+        // Update inspection payment status if authorized
+        if ($action === 'authorize') {
+            $updateQuery = "UPDATE inspection SET payment = 1 WHERE id = ?";
+            $updateStmt = $conn->prepare($updateQuery);
+            $updateStmt->bind_param("i", $inspectionId);
+            $updateStmt->execute();
+            $updateStmt->close();
+        }
+        
+        // Log activity
+        $activityLogger = new ActivityLogger($conn);
+        $activityData = [
+            'user_id' => $fireMarshalId,
+            'action' => $action === 'authorize' ? 'certificate_authorized' : 'certificate_denied',
+            'module' => 'certificates',
+            'description' => $action === 'authorize' 
+                ? "Authorized certificate release for {$inspection['business_name']} (Certificate: {$certificateNumber})" 
+                : "Denied certificate release for {$inspection['business_name']}",
+            'status' => 'success',
+            'old_values' => json_encode([]),
+            'new_values' => json_encode([
+                'inspection_id' => $inspectionId,
+                'establishment' => $inspection['business_name'],
+                'status' => $status,
+                'certificate_number' => $certificateNumber,
+                'remarks' => $remarks
+            ])
+        ];
+        $activityLogger->log($activityData);
+        
+        $stmt->close();
+        $conn->close();
+        
+        echo json_encode([
+            'success' => true,
+            'message' => $action === 'authorize' 
+                ? 'Certificate release authorized successfully' 
+                : 'Certificate release denied',
+            'certificateId' => $certificateId,
+            'certificateNumber' => $certificateNumber,
+            'status' => $status
+        ]);
+    } else {
+        throw new Exception('Failed to save authorization');
+    }
+
+} catch (Exception $e) {
+    // Clean any output buffer
+    while (ob_get_level()) {
+        ob_end_clean();
+    }
+    ob_start();
+    
+    // Log error
+    error_log("Error in authorizeCertificate.php: " . $e->getMessage());
+    
+    // Send clean JSON error
+    echo json_encode([
+        'success' => false,
+        'message' => 'An error occurred while processing the authorization: ' . $e->getMessage()
+    ]);
+}
+
+// Flush and exit
+ob_end_flush();
+exit;
+?>

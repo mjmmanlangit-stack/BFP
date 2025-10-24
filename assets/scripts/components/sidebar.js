@@ -10,6 +10,8 @@ document.addEventListener("click", function (event) {
   const toggleBtn = document.querySelector(".mobile-menu-toggle");
 
   if (
+    sidebar &&
+    toggleBtn &&
     window.innerWidth <= 768 &&
     !sidebar.contains(event.target) &&
     !toggleBtn.contains(event.target)
