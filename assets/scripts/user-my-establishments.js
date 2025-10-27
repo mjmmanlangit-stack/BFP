@@ -160,8 +160,8 @@ function viewEstablishment(id) {
 function editEstablishment(id) {
   const establishment = establishments.find((e) => e.id === id);
   if (establishment) {
-    document.getElementById("editBusinessName").value = establishment.name;
-    document.getElementById("editBfpRegNo").value = establishment.bfpRegNo;
+    document.getElementById("editEstablishmentName").value = establishment.name;
+    document.getElementById("editOwnershipType").value = establishment.bfpRegNo;
     document.getElementById("editAddress").value = establishment.address;
     document.getElementById("editBusinessType").value = establishment.type;
     document.getElementById("editLongitude").textContent =

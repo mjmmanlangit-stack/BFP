@@ -24,8 +24,8 @@
                 <form id="loginForm">
                     <div class="form-floating">
                         <i class="fas fa-user input-icon"></i>
-                        <input type="text" class="form-control" id="username" placeholder="Username" required>
-                        <label for="username">Username</label>
+                        <input type="text" class="form-control" id="username" placeholder="Email" required>
+                        <label for="username">Email</label>
                     </div>
                     
                     <div class="form-floating">
