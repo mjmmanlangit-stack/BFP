@@ -29,7 +29,7 @@ try {
     }
 
     // Get report for this inspection
-    $reportQuery = "SELECT id, inspection_order_number FROM reports WHERE inspection_id = ?";
+    $reportQuery = "SELECT id, inspection_order_number, compliance_status FROM reports WHERE inspection_id = ?";
     $reportStmt = $conn->prepare($reportQuery);
     $reportStmt->bind_param("i", $inspectionId);
     $reportStmt->execute();
@@ -47,6 +47,7 @@ try {
     $reportRow = $reportResult->fetch_assoc();
     $reportId = $reportRow['id'];
     $inspectionOrderNo = $reportRow['inspection_order_number'];
+    $complianceStatus  = $reportRow['compliance_status'];
 
     // Get all defects for this report
     $defectsQuery = "SELECT 
@@ -54,6 +55,7 @@ try {
                         defects_details,
                         grace_period,
                         status,
+                        evidence_path,
                         createdAt
                      FROM defects 
                      WHERE report_id = ?
@@ -71,6 +73,7 @@ try {
             'details' => $defect['defects_details'],
             'gracePeriod' => $defect['grace_period'],
             'status' => $defect['status'],
+            'evidencePath' => $defect['evidence_path'],
             'createdAt' => $defect['createdAt']
         ];
     }
@@ -80,6 +83,7 @@ try {
         'hasReport' => true,
         'reportId' => $reportId,
         'inspectionOrderNo' => $inspectionOrderNo,
+        'complianceStatus' => $complianceStatus,
         'defects' => $defects
     ]);
 

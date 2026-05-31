@@ -33,10 +33,10 @@ try {
                     SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
                     SUM(CASE WHEN inspection_date < ? AND status != 'completed' THEN 1 ELSE 0 END) as overdue
                    FROM inspection
-                   WHERE inspector1 = ? OR inspector2 = ?";
+                   WHERE inspector = ? OR inspector1 = ? OR inspector2 = ?";
     
     $stmt = $conn->prepare($statsQuery);
-    $stmt->bind_param("ssii", $currentDate, $currentDate, $inspectorId, $inspectorId);
+    $stmt->bind_param("ssiii", $currentDate, $currentDate, $inspectorId, $inspectorId, $inspectorId);
     $stmt->execute();
     $stats = $stmt->get_result()->fetch_assoc();
 
@@ -49,10 +49,10 @@ try {
                         SUM(CASE WHEN r.compliance_status = 'non_compliant' THEN 1 ELSE 0 END) as non_compliant
                      FROM reports r
                      INNER JOIN inspection i ON r.inspection_id = i.id
-                     WHERE i.inspector1 = ? OR i.inspector2 = ?";
+                     WHERE i.inspector = ? OR i.inspector1 = ? OR i.inspector2 = ?";
     
     $stmt = $conn->prepare($reportsQuery);
-    $stmt->bind_param("ii", $inspectorId, $inspectorId);
+    $stmt->bind_param("iii", $inspectorId, $inspectorId, $inspectorId);
     $stmt->execute();
     $reportsStats = $stmt->get_result()->fetch_assoc();
 
@@ -65,10 +65,10 @@ try {
                      FROM defects d
                      INNER JOIN reports r ON d.report_id = r.id
                      INNER JOIN inspection i ON r.inspection_id = i.id
-                     WHERE i.inspector1 = ? OR i.inspector2 = ?";
+                     WHERE i.inspector = ? OR i.inspector1 = ? OR i.inspector2 = ?";
     
     $stmt = $conn->prepare($defectsQuery);
-    $stmt->bind_param("sii", $currentDate, $inspectorId, $inspectorId);
+    $stmt->bind_param("siii", $currentDate, $inspectorId, $inspectorId, $inspectorId);
     $stmt->execute();
     $defectsStats = $stmt->get_result()->fetch_assoc();
 
@@ -84,14 +84,14 @@ try {
                         e.type as establishment_type
                       FROM inspection i
                       INNER JOIN establishment e ON i.establishment_id = e.id
-                      WHERE (i.inspector1 = ? OR i.inspector2 = ?)
+                      WHERE (i.inspector = ? OR i.inspector1 = ? OR i.inspector2 = ?)
                       AND i.inspection_date BETWEEN ? AND DATE_ADD(?, INTERVAL 7 DAY)
                       AND i.status IN ('pending', 'scheduled')
                       ORDER BY i.inspection_date ASC, i.time_slot ASC
                       LIMIT 10";
     
     $stmt = $conn->prepare($upcomingQuery);
-    $stmt->bind_param("iiss", $inspectorId, $inspectorId, $currentDate, $currentDate);
+    $stmt->bind_param("iiiss", $inspectorId, $inspectorId, $inspectorId, $currentDate, $currentDate);
     $stmt->execute();
     $upcomingResult = $stmt->get_result();
     
@@ -112,13 +112,13 @@ try {
                     FROM inspection i
                     INNER JOIN establishment e ON i.establishment_id = e.id
                     LEFT JOIN reports r ON i.id = r.inspection_id
-                    WHERE (i.inspector1 = ? OR i.inspector2 = ?)
+                    WHERE (i.inspector = ? OR i.inspector1 = ? OR i.inspector2 = ?)
                     AND i.status = 'completed'
                     ORDER BY i.inspection_date DESC
                     LIMIT 5";
     
     $stmt = $conn->prepare($recentQuery);
-    $stmt->bind_param("ii", $inspectorId, $inspectorId);
+    $stmt->bind_param("iii", $inspectorId, $inspectorId, $inspectorId);
     $stmt->execute();
     $recentResult = $stmt->get_result();
     
@@ -132,13 +132,13 @@ try {
                         DATE_FORMAT(inspection_date, '%Y-%m') as month,
                         COUNT(*) as count
                    FROM inspection
-                   WHERE (inspector1 = ? OR inspector2 = ?)
+                   WHERE (inspector = ? OR inspector1 = ? OR inspector2 = ?)
                    AND inspection_date >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
                    GROUP BY DATE_FORMAT(inspection_date, '%Y-%m')
                    ORDER BY month ASC";
     
     $stmt = $conn->prepare($trendQuery);
-    $stmt->bind_param("ii", $inspectorId, $inspectorId);
+    $stmt->bind_param("iii", $inspectorId, $inspectorId, $inspectorId);
     $stmt->execute();
     $trendResult = $stmt->get_result();
     
@@ -153,12 +153,12 @@ try {
                         COUNT(*) as count
                    FROM inspection i
                    INNER JOIN establishment e ON i.establishment_id = e.id
-                   WHERE (i.inspector1 = ? OR i.inspector2 = ?)
+                   WHERE (i.inspector = ? OR i.inspector1 = ? OR i.inspector2 = ?)
                    GROUP BY e.type
                    ORDER BY count DESC";
     
     $stmt = $conn->prepare($typesQuery);
-    $stmt->bind_param("ii", $inspectorId, $inspectorId);
+    $stmt->bind_param("iii", $inspectorId, $inspectorId, $inspectorId);
     $stmt->execute();
     $typesResult = $stmt->get_result();
     
@@ -172,12 +172,12 @@ try {
                         priority_level,
                         COUNT(*) as count
                       FROM inspection
-                      WHERE (inspector1 = ? OR inspector2 = ?)
+                      WHERE (inspector = ? OR inspector1 = ? OR inspector2 = ?)
                       AND status IN ('pending', 'scheduled')
                       GROUP BY priority_level";
     
     $stmt = $conn->prepare($priorityQuery);
-    $stmt->bind_param("ii", $inspectorId, $inspectorId);
+    $stmt->bind_param("iii", $inspectorId, $inspectorId, $inspectorId);
     $stmt->execute();
     $priorityResult = $stmt->get_result();
     

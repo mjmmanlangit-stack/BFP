@@ -1,3 +1,10 @@
+<?php
+session_start();
+if (!isset($_SESSION['user']) || strtolower($_SESSION['role']) !== 'admin') {
+    header('Location: ../index.php');
+    exit;
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -51,19 +58,25 @@
           </a>
         </div>
         <div class="nav-item">
-          <a href="#" class="nav-link active">
+          <a href="./schedule-inspections.php" class="nav-link">
             <i class="fas fa-calendar-check"></i>
             Schedule Inspections
           </a>
         </div>
         <div class="nav-item">
-          <a href="#" class="nav-link">
+          <a href="./certificate-authorization.php" class="nav-link">
+            <i class="fas fa-certificate"></i>
+            Certificate Authorization
+          </a>
+        </div>
+        <div class="nav-item">
+          <a href="./gis-map.php" class="nav-link">
             <i class="fas fa-map-marker-alt"></i>
             GIS Map
           </a>
         </div>
         <div class="nav-item">
-          <a href="./reports.php" class="nav-link">
+          <a href="./reports.php" class="nav-link active">
             <i class="fas fa-file-alt"></i>
             Reports
           </a>
@@ -76,8 +89,8 @@
         </div>
       </nav>
 
-      <div class="nav-item">
-        <a href="../index.php" class="nav-link">
+      <div class="sidebar-logout">
+        <a href="../../utility/logout.php" class="nav-link">
           <i class="fas fa-sign-out-alt"></i>
           Logout
         </a>
@@ -94,8 +107,8 @@
         </div>
         <div class="admin-info">
           <i class="fas fa-bell text-danger"></i>
-          <div class="admin-avatar">AD</div>
-          <span class="ms-2">Admin User</span>
+          <div class="admin-avatar"><?php echo strtoupper(substr($_SESSION['fullname'] ?? 'AD', 0, 1)) . strtoupper(substr(strstr($_SESSION['fullname'] ?? '', ' '), 1, 1)); ?></div>
+          <span class="ms-2"><?php echo htmlspecialchars($_SESSION['fullname'] ?? 'Admin'); ?></span>
         </div>
       </div>
 
@@ -168,6 +181,41 @@
           </div>
         </div> -->
 
+        <!-- Live summary stats -->
+        <div class="row mb-3" id="summaryRow">
+          <div class="col-md-3 mb-2">
+            <div class="card text-center"><div class="card-body py-3">
+              <div class="fs-4 fw-bold text-primary" id="sumTotal">—</div>
+              <div class="text-muted small">Total Inspections</div>
+            </div></div>
+          </div>
+          <div class="col-md-3 mb-2">
+            <div class="card text-center"><div class="card-body py-3">
+              <div class="fs-4 fw-bold text-success" id="sumCerts">—</div>
+              <div class="text-muted small">Certificates Issued</div>
+            </div></div>
+          </div>
+          <div class="col-md-3 mb-2">
+            <div class="card text-center"><div class="card-body py-3">
+              <div class="fs-4 fw-bold text-danger" id="sumNonCompliant">—</div>
+              <div class="text-muted small">Non-Compliant</div>
+            </div></div>
+          </div>
+          <div class="col-md-3 mb-2">
+            <div class="card text-center"><div class="card-body py-3">
+              <div class="fs-4 fw-bold text-warning" id="sumOverdue">—</div>
+              <div class="text-muted small">Overdue Defects</div>
+            </div></div>
+          </div>
+        </div>
+
+        <!-- Export bar -->
+        <div class="d-flex justify-content-end mb-3">
+          <button class="btn btn-success btn-sm" onclick="exportSummaryCSV()">
+            <i class="fas fa-file-csv me-1"></i> Export Summary CSV
+          </button>
+        </div>
+
         <!-- Dashboard Cards -->
         <div class="row mb-4">
           <!-- Compliance Overview -->
@@ -206,15 +254,15 @@
                 <div class="mt-3">
                   <div class="row text-center">
                     <div class="col-4">
-                      <div class="h5 text-danger">12</div>
+                      <div class="h5 text-danger" id="violFireExit">0</div>
                       <small class="text-muted">Fire Exit</small>
                     </div>
                     <div class="col-4">
-                      <div class="h5 text-warning">8</div>
+                      <div class="h5 text-warning" id="violEquipment">0</div>
                       <small class="text-muted">Equipment</small>
                     </div>
                     <div class="col-4">
-                      <div class="h5 text-info">5</div>
+                      <div class="h5 text-info" id="violElectrical">0</div>
                       <small class="text-muted">Electrical</small>
                     </div>
                   </div>
@@ -353,5 +401,46 @@
 
     <script src="../../assets/scripts/reports.js"></script>
     <script src="../../assets/scripts/components/sidebar.js"></script>
+    <script>
+    /* Wire summary stats from getReportData.php */
+    async function loadSummaryStats() {
+      try {
+        const res = await fetch('../../utility/getReportData.php');
+        const d   = await res.json();
+        if (!d.success) return;
+        const s = d.summary || {};
+        document.getElementById('sumTotal').textContent       = s.total_inspections      ?? '—';
+        document.getElementById('sumCerts').textContent       = s.certificates_issued    ?? '—';
+        document.getElementById('sumNonCompliant').textContent= s.non_compliant_count    ?? '—';
+        document.getElementById('sumOverdue').textContent     = s.overdue_defects        ?? '—';
+        window._reportData = d;   // cache for CSV export
+
+        // Populate violation type counts dynamically
+        const vTypes = d.violationTypes || [];
+        const vtMap = {};
+        vTypes.forEach(v => { vtMap[v.violation_type] = parseInt(v.count) || 0; });
+        const elFE = document.getElementById('violFireExit');
+        const elEQ = document.getElementById('violEquipment');
+        const elEL = document.getElementById('violElectrical');
+        if (elFE) elFE.textContent = vtMap['Fire Exit'] || 0;
+        if (elEQ) elEQ.textContent = vtMap['Equipment'] || 0;
+        if (elEL) elEL.textContent = vtMap['Electrical'] || 0;
+      } catch(e) { console.error(e); }
+    }
+
+    function exportSummaryCSV() {
+      const d = window._reportData;
+      if (!d) { alert('Data not loaded yet.'); return; }
+      const rows = [['Month','Total','Completed','Scheduled']];
+      (d.monthlyTrend || []).forEach(t => rows.push([t.month, t.total, t.completed, t.scheduled]));
+      const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+      a.download = 'inspection-report-' + new Date().toISOString().slice(0,10) + '.csv';
+      a.click();
+    }
+
+    document.addEventListener('DOMContentLoaded', loadSummaryStats);
+    </script>
   </body>
 </html>

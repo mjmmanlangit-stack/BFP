@@ -139,15 +139,27 @@ async function initializeMap() {
 }
 
 async function renderInspectors(list) {
-  const res = await fetch("../../utility/getInspector.php")
-  const json = await res.json()
-  console.log(json)
-  inspectors = json
+  // Get the selected date and time slot if available (for filtering)
+  const inspectionDateInput = document.getElementById("inspectionDate");
+  const timeSlotInput = document.getElementById("timeSlot");
+  
+  let url = "../../utility/getInspector.php";
+  
+  // If both date and time slot are selected, pass them as query parameters for filtering
+  if (inspectionDateInput && inspectionDateInput.value && timeSlotInput && timeSlotInput.value) {
+    url += "?inspection_date=" + encodeURIComponent(inspectionDateInput.value) + 
+           "&time_slot=" + encodeURIComponent(timeSlotInput.value);
+  }
+  
+  const res = await fetch(url);
+  const json = await res.json();
+  console.log(json);
+  inspectors = json;
   const inspectorList = document.getElementById("inspectorList");
   inspectorList.innerHTML = "";
 
   if (inspectors.length === 0) {
-    inspectorList.innerHTML = "<p>No inspectors found.</p>";
+    inspectorList.innerHTML = "<p>No available inspectors for the selected date and time.</p>";
     return;
   }
 
@@ -160,7 +172,7 @@ async function renderInspectors(list) {
       <div class="inspector-avatar">${inspector.fullname[0]}</div>
       <div class="inspector-info">
         <h6>${inspector.fullname}</h6>
-        <small>${inspector.status}</small>
+        <small>${inspector.status || 'Available'}</small>
       </div>
     `;
 
@@ -282,6 +294,22 @@ function setupEventListeners() {
   document
     .getElementById("updateInspectionBtn")
     .addEventListener("click", updateInspection);
+  
+  // Add listeners for date and time slot changes to update inspector list
+  const inspectionDateInput = document.getElementById("inspectionDate");
+  const timeSlotInput = document.getElementById("timeSlot");
+  
+  if (inspectionDateInput) {
+    inspectionDateInput.addEventListener("change", () => {
+      renderInspectors(inspectors);
+    });
+  }
+  
+  if (timeSlotInput) {
+    timeSlotInput.addEventListener("change", () => {
+      renderInspectors(inspectors);
+    });
+  }
 }
 
 async function scheduleInspection() {

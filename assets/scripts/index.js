@@ -31,7 +31,7 @@ document.getElementById("loginForm").addEventListener("submit", function (e) {
         button.classList.remove("loading");
         
         if (j.success) {
-          // Role-based redirect mapping (supports multiple variations)
+          // Role-based redirect mapping
           const roleRedirects = {
             'admin': './admin/dashboard.php',
             'Admin': './admin/dashboard.php',
@@ -39,19 +39,11 @@ document.getElementById("loginForm").addEventListener("submit", function (e) {
             'Owner': './owner/dashboard.php',
             'inspector': './inspector/dashboard.php',
             'Inspector': './inspector/dashboard.php',
-            'chief': './Chief/dashboard.html',
-            'Chief': './Chief/dashboard.html',
-            'fire marshal': './FireMarshal/inspections.html',
-            'Fire Marshal': './FireMarshal/inspections.html',
-            'Fire Marsh': './FireMarshal/inspections.html',  // Handles database typo
-            'fire marsh': './FireMarshal/inspections.html',
-            'FireMarshal': './FireMarshal/inspections.html',
-            'firemarshal': './FireMarshal/inspections.html',
-            'cro': './CRO/dashboard.html',
-            'CRO': './CRO/dashboard.html',
-            'Cro': './CRO/dashboard.html',
-            'accessor': './Accessor/dashboard.html',
-            'Accessor': './Accessor/dashboard.html'
+            'chief': './Chief/dashboard.php',
+            'Chief': './Chief/dashboard.php',
+            'cro': './CRO/dashboard.php',
+            'CRO': './CRO/dashboard.php',
+            'Cro': './CRO/dashboard.php'
           };
           
           const redirectUrl = roleRedirects[j.role];

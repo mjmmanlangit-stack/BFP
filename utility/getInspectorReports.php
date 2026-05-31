@@ -48,13 +48,14 @@ try {
               FROM reports r
               INNER JOIN inspection i ON r.inspection_id = i.id
               INNER JOIN establishment e ON i.establishment_id = e.id
+              LEFT JOIN user u0 ON i.inspector = u0.id
               LEFT JOIN user u1 ON i.inspector1 = u1.id
               LEFT JOIN user u2 ON i.inspector2 = u2.id
-              WHERE (i.inspector1 = ? OR i.inspector2 = ?)
+              WHERE (i.inspector = ? OR i.inspector1 = ? OR i.inspector2 = ?)
               ORDER BY r.createdAt DESC, i.inspection_date DESC";
 
     $stmt = $conn->prepare($query);
-    $stmt->bind_param("ii", $inspectorId, $inspectorId);
+    $stmt->bind_param("iii", $inspectorId, $inspectorId, $inspectorId);
     $stmt->execute();
     $result = $stmt->get_result();
 

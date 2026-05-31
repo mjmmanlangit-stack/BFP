@@ -25,7 +25,7 @@ try {
     $data = json_decode(file_get_contents('php://input'), true);
     
     $reportId = $data['reportId'] ?? null;
-    $complianceStatus = $data['complianceStatus'] ?? null; // 'compliant', 'partially_compliant', 'non_compliant'
+    $complianceStatus = $data['complianceStatus'] ?? null; // 'compliant', 'non_compliant'
     $inspectorNotes = trim($data['inspectorNotes'] ?? '');
 
     // Validate required fields
@@ -38,7 +38,7 @@ try {
     }
 
     // Validate compliance status value
-    if (!in_array($complianceStatus, ['compliant', 'partially_compliant', 'non_compliant'])) {
+    if (!in_array($complianceStatus, ['compliant', 'non_compliant'])) {
         echo json_encode([
             'success' => false,
             'message' => 'Invalid compliance status'

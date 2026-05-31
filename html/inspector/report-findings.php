@@ -183,21 +183,7 @@ if (!isset($_SESSION['user']) || $_SESSION['role'] !== 'inspector') {
         right: 10px;
       }
 
-      .btn-partially-compliant {
-        background-color: var(--bfp-gold);
-        color: var(--bfp-dark);
-        border: none;
-      }
 
-      .btn-partially-compliant:hover {
-        background-color: #e0a800;
-        color: var(--bfp-dark);
-      }
-
-      .badge-partially-compliant {
-        background-color: var(--bfp-gold);
-        color: var(--bfp-dark);
-      }
 
       .compliance-summary {
         background: var(--bfp-light);
@@ -283,12 +269,7 @@ if (!isset($_SESSION['user']) || $_SESSION['role'] !== 'inspector') {
             >
               <i class="fas fa-check-circle me-1"></i>Compliant
             </button>
-            <button
-              class="btn btn-outline-warning filter-btn"
-              data-filter="partially_compliant"
-            >
-              <i class="fas fa-exclamation-triangle me-1"></i>Partially Compliant
-            </button>
+
             <button
               class="btn btn-outline-danger filter-btn"
               data-filter="non_compliant"
@@ -442,13 +423,7 @@ if (!isset($_SESSION['user']) || $_SESSION['role'] !== 'inspector') {
               >
                 <i class="fas fa-check-circle me-2"></i>Mark as COMPLIANT (All defects solved)
               </button>
-              <button
-                type="button"
-                class="btn btn-partially-compliant"
-                onclick="finalizeCompliance('partially_compliant')"
-              >
-                <i class="fas fa-exclamation-triangle me-2"></i>Mark as PARTIALLY COMPLIANT (Some defects pending)
-              </button>
+
               <button
                 type="button"
                 class="btn btn-non-compliant"
@@ -515,8 +490,7 @@ if (!isset($_SESSION['user']) || $_SESSION['role'] !== 'inspector') {
       function getStatusBadge(status) {
         if (status === 'compliant') {
           return '<span class="badge badge-compliant">Compliant</span>';
-        } else if (status === 'partially_compliant') {
-          return '<span class="badge badge-partially-compliant">Partially Compliant</span>';
+
         } else if (status === 'non_compliant') {
           return '<span class="badge badge-non-compliant">Non-Compliant</span>';
         } else {
@@ -615,9 +589,7 @@ if (!isset($_SESSION['user']) || $_SESSION['role'] !== 'inspector') {
           if (currentRecord.complianceStatus === 'compliant') {
             statusText = 'COMPLIANT';
             statusClass = 'bg-success text-white';
-          } else if (currentRecord.complianceStatus === 'partially_compliant') {
-            statusText = 'PARTIALLY COMPLIANT';
-            statusClass = 'bg-warning text-dark';
+
           } else {
             statusText = 'NON-COMPLIANT';
             statusClass = 'bg-danger text-white';
@@ -770,7 +742,6 @@ if (!isset($_SESSION['user']) || $_SESSION['role'] !== 'inspector') {
 
         // Confirmation
         let statusText = complianceStatus === 'compliant' ? 'COMPLIANT' 
-          : complianceStatus === 'partially_compliant' ? 'PARTIALLY COMPLIANT' 
           : 'NON-COMPLIANT';
         
         if (!confirm(`Are you sure you want to mark this report as ${statusText}?`)) {

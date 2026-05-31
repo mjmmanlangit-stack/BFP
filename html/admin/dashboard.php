@@ -1,3 +1,10 @@
+<?php
+session_start();
+if (!isset($_SESSION['user']) || strtolower($_SESSION['role']) !== 'admin') {
+    header('Location: ../index.php');
+    exit;
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -169,15 +176,51 @@
           </a>
         </div>
         <div class="nav-item">
+          <a href="./establishments.php" class="nav-link">
+            <i class="fas fa-building"></i>
+            Establishments
+          </a>
+        </div>
+        <div class="nav-item">
+          <a href="./schedule-inspections.php" class="nav-link">
+            <i class="fas fa-calendar-check"></i>
+            Schedule Inspections
+          </a>
+        </div>
+        <div class="nav-item">
+          <a href="./certificate-authorization.php" class="nav-link">
+            <i class="fas fa-certificate"></i>
+            Certificate Authorization
+          </a>
+        </div>
+        <div class="nav-item">
+          <a href="./gis-map.php" class="nav-link">
+            <i class="fas fa-map-marker-alt"></i>
+            GIS Map
+          </a>
+        </div>
+        <div class="nav-item">
+          <a href="./reports.php" class="nav-link">
+            <i class="fas fa-file-alt"></i>
+            Reports
+          </a>
+        </div>
+        <div class="nav-item">
           <a href="./user-management.php" class="nav-link">
-            <i class="fas fa-user"></i>
+            <i class="fas fa-users"></i>
             User Management
+          </a>
+        </div>
+        <div class="nav-item">
+          <a href="./activity-logs.php" class="nav-link">
+            <i class="fas fa-history"></i>
+            Activity Logs
           </a>
         </div>
       </nav>
 
-      <div class="nav-item">
-        <a href="../index.php" class="nav-link">
+      <div class="sidebar-logout">
+        <a href="../../utility/logout.php" class="nav-link">
           <i class="fas fa-sign-out-alt"></i>
           Logout
         </a>
@@ -235,11 +278,11 @@
                   class="card-body d-flex justify-content-between align-items-center"
                 >
                   <div>
-                    <h6 class="text-muted mb-1">Fire Marshals</h6>
-                    <h3 class="mb-0" id="marshalCount">0</h3>
+                    <h6 class="text-muted mb-1">Cert. Authorizations</h6>
+                    <h3 class="mb-0" id="certCount">0</h3>
                   </div>
                   <div class="stat-icon bg-bfp-dark">
-                    <i class="fas fa-shield-alt"></i>
+                    <i class="fas fa-certificate"></i>
                   </div>
                 </div>
               </div>
@@ -265,11 +308,11 @@
                   class="card-body d-flex justify-content-between align-items-center"
                 >
                   <div>
-                    <h6 class="text-muted mb-1">Accessors</h6>
-                    <h3 class="mb-0" id="accessorCount">0</h3>
+                    <h6 class="text-muted mb-1">Total Staff Users</h6>
+                    <h3 class="mb-0" id="totalStaffCount">0</h3>
                   </div>
                   <div class="stat-icon" style="background-color: #28a745">
-                    <i class="fas fa-clipboard-check"></i>
+                    <i class="fas fa-users"></i>
                   </div>
                 </div>
               </div>
@@ -402,9 +445,7 @@
                   <option value="">Select Role</option>
                   <option value="Inspector">Inspector</option>
                   <option value="Chief">Chief</option>
-                  <option value="Fire Marshal">Fire Marshal</option>
                   <option value="CRO">Customer Relationship Officer</option>
-                  <option value="Accessor">Accessor</option>
                 </select>
               </div>
               <div class="mb-3">
@@ -488,9 +529,7 @@
                 <select class="form-select" id="editRole" required>
                   <option value="Inspector">Inspector</option>
                   <option value="Chief">Chief</option>
-                  <option value="Fire Marshal">Fire Marshal</option>
                   <option value="CRO">Customer Relationship Officer</option>
-                  <option value="Accessor">Accessor</option>
                 </select>
               </div>
               <div class="mb-3">
@@ -664,26 +703,34 @@
           const users = await response.json();
           
           if (users && Array.isArray(users)) {
-            const inspectors = users.filter(u => u.role === 'inspector').length;
-            const chiefs = users.filter(u => u.role === 'chief').length;
-            const marshals = users.filter(u => u.role === 'Fire Marshal').length;
-            const cro = users.filter(u => u.role === 'CRO').length;
-            const accessors = users.filter(u => u.role === 'Accessor').length;
+            const inspectors  = users.filter(u => u.role === 'inspector' || u.role === 'Inspector').length;
+            const chiefs      = users.filter(u => u.role === 'Chief' || u.role === 'chief').length;
+            const cro         = users.filter(u => u.role === 'CRO' || u.role === 'cro').length;
+            const totalStaff  = users.filter(u => u.role !== 'owner').length;
 
-            document.getElementById('inspectorCount').textContent = inspectors;
-            document.getElementById('chiefCount').textContent = chiefs;
-            document.getElementById('marshalCount').textContent = marshals;
-            document.getElementById('croCount').textContent = cro;
-            document.getElementById('accessorCount').textContent = accessors;
+            document.getElementById('inspectorCount').textContent   = inspectors;
+            document.getElementById('chiefCount').textContent       = chiefs;
+            document.getElementById('croCount').textContent         = cro;
+            document.getElementById('totalStaffCount').textContent  = totalStaff;
+
+            // Load certificate authorization count
+            fetch('../../utility/getFireMarshalInspections.php')
+              .then(r => r.json())
+              .then(d => {
+                if (d.success) {
+                  const authorized = (d.inspections || []).filter(i => i.authorization && i.authorization.status === 'authorized').length;
+                  document.getElementById('certCount').textContent = authorized;
+                }
+              }).catch(() => {});
           }
         } catch (error) {
           console.error('Error loading user statistics:', error);
           // Set to 0 on error
           document.getElementById('inspectorCount').textContent = '0';
           document.getElementById('chiefCount').textContent = '0';
-          document.getElementById('marshalCount').textContent = '0';
+          document.getElementById('certCount').textContent = '0';
           document.getElementById('croCount').textContent = '0';
-          document.getElementById('accessorCount').textContent = '0';
+          document.getElementById('totalStaffCount').textContent = '0';
         }
       }
 
@@ -998,9 +1045,7 @@
           inspector: "bg-danger",
           Chief: "bg-warning text-dark",
           chief: "bg-warning text-dark",
-          "Fire Marshal": "bg-dark",
           CRO: "bg-info",
-          Accessor: "bg-success",
           admin: "bg-primary"
         };
         return badges[role] || "bg-secondary";

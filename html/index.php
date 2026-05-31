@@ -42,6 +42,7 @@
             </div>
             
             <div class="login-footer">
+                <p class="mb-1">New establishment owner? <a href="./owner/register.php" style="font-weight:bold;">Register here</a></p>
                 <p class="mb-0">&copy; 2025 Bureau of Fire Protection. All rights reserved.</p>
             </div>
         </div>

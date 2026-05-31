@@ -1,68 +1,74 @@
-// Sample inspection data
-const inspectionData = [
-  {
-    id: 1,
-    establishment: "Virac Public Market",
-    type: "Commercial",
-    address: "San Juan St., Virac",
-    inspectionDate: "2025-07-15",
-    riskLevel: "high",
-    status: "overdue",
-    lat: 13.6248,
-    lng: 124.2363,
-  },
-  {
-    id: 2,
-    establishment: "Catanduanes State University",
-    type: "Educational",
-    address: "Calatagan, Virac",
-    inspectionDate: "2025-07-18",
-    riskLevel: "medium",
-    status: "pending",
-    lat: 13.6185,
-    lng: 124.2456,
-  },
-  {
-    id: 3,
-    establishment: "Virac Town Center",
-    type: "Commercial",
-    address: "Rizal Ave., Virac",
-    inspectionDate: "2025-07-20",
-    riskLevel: "high",
-    status: "scheduled",
-    lat: 13.6312,
-    lng: 124.2398,
-  },
-  {
-    id: 4,
-    establishment: "Virac District Hospital",
-    type: "Healthcare",
-    address: "San Isidro Village, Virac",
-    inspectionDate: "2025-07-10",
-    riskLevel: "high",
-    status: "completed",
-    lat: 13.6156,
-    lng: 124.2287,
-  },
-  {
-    id: 5,
-    establishment: "Marcelo Hotel",
-    type: "Hospitality",
-    address: "Marcelo Area, Virac",
-    inspectionDate: "2025-07-22",
-    riskLevel: "medium",
-    status: "scheduled",
-    lat: 13.6289,
-    lng: 124.2401,
-  },
-];
-
-let filteredData = [...inspectionData];
+// Live inspection data fetched from API
+let inspectionData = [];
+let filteredData   = [];
 let map;
+
+// Map API response to display format
+function mapApiData(item) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const iDate = item.inspectionDate ? new Date(item.inspectionDate) : null;
+
+  let status = "scheduled";
+  if (item.viewed) {
+    status = "completed";
+  } else if (iDate && iDate < today) {
+    status = "overdue";
+  } else if (iDate && iDate >= today) {
+    status = "scheduled";
+  } else {
+    status = "pending";
+  }
+
+  return {
+    id:             item.id,
+    establishment:  item.businessName || "Unknown",
+    type:           item.businessType || "—",
+    address:        item.address || "—",
+    inspectionDate: item.inspectionDate ? item.inspectionDate.split(" ")[0] : "",
+    riskLevel:      (item.priorityLevel || "medium").toLowerCase(),
+    status:         status,
+    lat:            item.latitude  || 13.6248,
+    lng:            item.longitude || 124.2363,
+    inspectionType: item.inspectionType,
+    notes:          item.notes,
+    inspector1:     item.inspector1,
+    inspector2:     item.inspector2,
+    reportId:       item.reportId,
+    orderNo:        item.inspectionOrderNo,
+    regNo:          item.regNo
+  };
+}
+
+// Fetch inspections from backend
+async function loadInspections() {
+  const tbody = document.getElementById("inspectionTableBody");
+  if (tbody) tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4"><span class="spinner-border spinner-border-sm me-2"></span>Loading inspections...</td></tr>';
+
+  try {
+    const res = await fetch("../../utility/getInspectorAssignments.php");
+    const j   = await res.json();
+
+    if (j.success) {
+      inspectionData = j.inspections.map(mapApiData);
+      filteredData   = [...inspectionData];
+    } else {
+      console.error("API error:", j.message);
+      inspectionData = [];
+      filteredData   = [];
+    }
+  } catch (err) {
+    console.error("Fetch error:", err);
+    inspectionData = [];
+    filteredData   = [];
+  }
+
+  renderTable();
+}
 
 // Initialize the page
 document.addEventListener("DOMContentLoaded", function () {
-  renderTable();
+  loadInspections();
   setupDateDefaults();
 });
 

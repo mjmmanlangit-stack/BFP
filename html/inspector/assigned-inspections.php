@@ -395,21 +395,29 @@ if (!isset($_SESSION['user']) || $_SESSION['role'] !== 'inspector') {
               <form id="reportForm">
                 <div class="mb-3">
                   <label for="inspectionOrderNo" class="form-label"
-                    >Inspection Order No.
-                    <span class="text-danger">*</span></label
+                    >Inspection Order No.</label
                   >
                   <input
                     type="text"
-                    class="form-control"
+                    class="form-control bg-light"
                     id="inspectionOrderNo"
-                    required
+                    readonly
                   />
                 </div>
                 
                 <div class="mb-3">
+                  <label for="complianceStatus" class="form-label">Compliance Status <span class="text-danger">*</span></label>
+                  <select class="form-select" id="complianceStatus" required>
+                    <option value="">-- Select Compliance Status --</option>
+                    <option value="compliant">Compliant</option>
+
+                    <option value="non_compliant">Non-Compliant</option>
+                  </select>
+                </div>
+
+                <div class="mb-3">
                   <label class="form-label">
                     Defects/Deficiencies
-                    <span class="text-danger">*</span>
                   </label>
                   <div id="defectsContainer">
                     <!-- Defect entries will be added here -->
@@ -530,26 +538,41 @@ if (!isset($_SESSION['user']) || $_SESSION['role'] !== 'inspector') {
         }
       }
 
-      function addDefectEntry(details = '', gracePeriod = '') {
+      function addDefectEntry(details = '', gracePeriod = '', evidencePath = '') {
         defectCounter++;
         const container = document.getElementById('defectsContainer');
         const entryDiv = document.createElement('div');
         entryDiv.className = 'defect-entry';
         entryDiv.id = `defect-${defectCounter}`;
         
+        const existingEvidenceHtml = evidencePath
+          ? `<div class="mt-1">
+              <small class="text-muted">Current evidence: 
+                <a href="../../${evidencePath}" target="_blank" class="text-primary">
+                  <i class="fas fa-paperclip"></i> View file
+                </a>
+              </small>
+             </div>`
+          : '';
+
         entryDiv.innerHTML = `
           ${defectCounter > 1 ? `<button type="button" class="btn btn-sm btn-danger remove-defect" onclick="removeDefectEntry(${defectCounter})">
             <i class="fas fa-times"></i>
           </button>` : ''}
           <div class="defect-number">Defect #${defectCounter}</div>
           <div class="mb-2">
-            <label class="form-label">Defect Details <span class="text-danger">*</span></label>
-            <textarea class="form-control defect-details" rows="3" required 
+            <label class="form-label">Defect Details</label>
+            <textarea class="form-control defect-details" rows="3" 
               placeholder="Describe the defect or deficiency found...">${details}</textarea>
           </div>
           <div class="mb-2">
-            <label class="form-label">Grace Period Date <span class="text-danger">*</span></label>
-            <input type="date" class="form-control defect-grace-period" required value="${gracePeriod}">
+            <label class="form-label">Grace Period Date</label>
+            <input type="date" class="form-control defect-grace-period" value="${gracePeriod}">
+          </div>
+          <div class="mb-2">
+            <label class="form-label">Evidence <small class="text-muted">(Photo/PDF, optional)</small></label>
+            <input type="file" class="form-control defect-evidence" accept="image/*,.pdf">
+            ${existingEvidenceHtml}
           </div>
         `;
         
@@ -586,11 +609,14 @@ if (!isset($_SESSION['user']) || $_SESSION['role'] !== 'inspector') {
 
           if (data.success && data.hasReport) {
             document.getElementById('inspectionOrderNo').value = data.inspectionOrderNo;
+
+            const csSelect = document.getElementById('complianceStatus');
+            csSelect.value = data.complianceStatus || '';
             
             clearDefects();
             if (data.defects && data.defects.length > 0) {
               data.defects.forEach(defect => {
-                addDefectEntry(defect.details, defect.gracePeriod);
+                addDefectEntry(defect.details, defect.gracePeriod, defect.evidencePath || '');
               });
             } else {
               addDefectEntry();
@@ -636,7 +662,14 @@ if (!isset($_SESSION['user']) || $_SESSION['role'] !== 'inspector') {
           inspection.longitude;
 
         // Load existing report if available
-        await loadExistingReport(id);
+        const hasExisting = await loadExistingReport(id);
+
+        // Auto-generate order number for new reports
+        if (!hasExisting) {
+          const year = new Date().getFullYear();
+          const paddedId = String(id).padStart(6, '0');
+          document.getElementById('inspectionOrderNo').value = `FSIC-${year}-${paddedId}`;
+        }
 
         // Show modal
         const modal = new bootstrap.Modal(
@@ -682,48 +715,51 @@ if (!isset($_SESSION['user']) || $_SESSION['role'] !== 'inspector') {
         e.preventDefault();
 
         const orderNo = document.getElementById("inspectionOrderNo").value.trim();
-        
-        // Collect all defects
-        const defectEntries = document.querySelectorAll('.defect-entry');
-        const defects = [];
-        
-        let hasError = false;
-        defectEntries.forEach(entry => {
-          const details = entry.querySelector('.defect-details').value.trim();
-          const gracePeriod = entry.querySelector('.defect-grace-period').value;
-          
-          if (!details || !gracePeriod) {
-            hasError = true;
-            return;
-          }
-          
-          defects.push({
-            details: details,
-            gracePeriod: gracePeriod
-          });
-        });
+        const complianceStatus = document.getElementById("complianceStatus").value;
 
-        if (hasError) {
-          showAlert('Please fill in all defect fields', 'warning');
+        if (!complianceStatus) {
+          showAlert('Please select a compliance status.', 'warning');
           return;
         }
 
-        if (defects.length === 0) {
-          showAlert('Please add at least one defect', 'warning');
+        // Build FormData (supports file uploads)
+        const defectEntries = document.querySelectorAll('.defect-entry');
+        let hasError = false;
+        let defectIndex = 0;
+
+        const formData = new FormData();
+        formData.append('inspectionId', currentInspectionId);
+        formData.append('inspectionOrderNo', orderNo);
+        formData.append('complianceStatus', complianceStatus);
+
+        defectEntries.forEach(entry => {
+          const details    = entry.querySelector('.defect-details').value.trim();
+          const gracePeriod = entry.querySelector('.defect-grace-period').value;
+          const fileInput  = entry.querySelector('.defect-evidence');
+
+
+
+          formData.append(`defect_details_${defectIndex}`, details);
+          formData.append(`defect_grace_${defectIndex}`, gracePeriod);
+          if (fileInput && fileInput.files.length > 0) {
+            formData.append(`defect_evidence_${defectIndex}`, fileInput.files[0]);
+          }
+          defectIndex++;
+        });
+
+        formData.append('defectCount', defectIndex);
+
+
+
+        if (defectIndex === 0) {
+          showAlert('Please add at least one defect.', 'warning');
           return;
         }
 
         try {
           const response = await fetch('../../utility/submitInspectionReport.php', {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              inspectionId: currentInspectionId,
-              inspectionOrderNo: orderNo,
-              defects: defects
-            })
+            body: formData   // browser sets multipart/form-data + boundary automatically
           });
 
           const data = await response.json();

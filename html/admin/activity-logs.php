@@ -216,8 +216,38 @@ if (!isset($_SESSION['user']) || $_SESSION['role'] !== 'admin') {
           </a>
         </div>
         <div class="nav-item">
+          <a href="./establishments.php" class="nav-link">
+            <i class="fas fa-building"></i>
+            Establishments
+          </a>
+        </div>
+        <div class="nav-item">
+          <a href="./schedule-inspections.php" class="nav-link">
+            <i class="fas fa-calendar-check"></i>
+            Schedule Inspections
+          </a>
+        </div>
+        <div class="nav-item">
+          <a href="./certificate-authorization.php" class="nav-link">
+            <i class="fas fa-certificate"></i>
+            Certificate Authorization
+          </a>
+        </div>
+        <div class="nav-item">
+          <a href="./gis-map.php" class="nav-link">
+            <i class="fas fa-map-marker-alt"></i>
+            GIS Map
+          </a>
+        </div>
+        <div class="nav-item">
+          <a href="./reports.php" class="nav-link">
+            <i class="fas fa-file-alt"></i>
+            Reports
+          </a>
+        </div>
+        <div class="nav-item">
           <a href="./user-management.php" class="nav-link">
-            <i class="fas fa-user"></i>
+            <i class="fas fa-users"></i>
             User Management
           </a>
         </div>
@@ -229,8 +259,8 @@ if (!isset($_SESSION['user']) || $_SESSION['role'] !== 'admin') {
         </div>
       </nav>
 
-      <div class="nav-item">
-        <a href="../index.php" class="nav-link">
+      <div class="sidebar-logout">
+        <a href="../../utility/logout.php" class="nav-link">
           <i class="fas fa-sign-out-alt"></i>
           Logout
         </a>

@@ -1,3 +1,10 @@
+<?php
+session_start();
+if (!isset($_SESSION['user']) || strtolower($_SESSION['role']) !== 'owner') {
+    header('Location: ../index.php');
+    exit;
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -255,16 +262,22 @@
       </div>
       <div class="nav-item">
         <a href="./certificates.php" class="nav-link ">
-          <i class="fas fa-calendar-check"></i>
+          <i class="fas fa-certificate"></i>
           Certificates
         </a>
       </div>
-      <!-- <div class="nav-item">
-          <a href="./gis-map.html" class="nav-link">
-            <i class="fas fa-map-marker-alt"></i>
-            Documents
-          </a>
-        </div> -->
+      <div class="nav-item">
+        <a href="./documents.php" class="nav-link">
+          <i class="fas fa-file-alt"></i>
+          Documents
+        </a>
+      </div>
+      <div class="nav-item">
+        <a href="./inspection-history.php" class="nav-link">
+          <i class="fas fa-history"></i>
+          Inspection History
+        </a>
+      </div>
     </nav>
 
     <div class="nav-item">
@@ -287,7 +300,7 @@
         <div class="d-flex align-items-center">
           <div class="notification-icon" id="notificationBell">
             <i class="fas fa-bell"></i>
-            <span class="notification-badge" id="notificationCount">3</span>
+            <span class="notification-badge" id="notificationCount" style="display:none;">0</span>
           </div>
           
         </div>
@@ -300,32 +313,8 @@
         <i class="fas fa-bell"></i> Payment Notifications
       </div>
       <div id="notificationList">
-        <div class="notification-item unread" data-id="1">
-          <div class="d-flex justify-content-between align-items-start">
-            <div>
-              <h6 class="mb-1"><i class="fas fa-money-bill text-success"></i> Payment Approved</h6>
-              <p class="mb-1 small">Your FSIC application payment has been approved by the assessor.</p>
-              <small class="text-muted">2 hours ago</small>
-            </div>
-          </div>
-        </div>
-        <div class="notification-item unread" data-id="2">
-          <div class="d-flex justify-content-between align-items-start">
-            <div>
-              <h6 class="mb-1"><i class="fas fa-exclamation-circle text-warning"></i> Payment Pending</h6>
-              <p class="mb-1 small">Assessment fee payment is under review by the assessor.</p>
-              <small class="text-muted">1 day ago</small>
-            </div>
-          </div>
-        </div>
-        <div class="notification-item unread" data-id="3">
-          <div class="d-flex justify-content-between align-items-start">
-            <div>
-              <h6 class="mb-1"><i class="fas fa-check-circle text-success"></i> Payment Confirmed</h6>
-              <p class="mb-1 small">Renewal fee payment has been confirmed. Certificate processing initiated.</p>
-              <small class="text-muted">3 days ago</small>
-            </div>
-          </div>
+        <div class="text-center py-3 text-muted">
+          <span class="spinner-border spinner-border-sm me-2"></span>Loading notifications…
         </div>
       </div>
     </div>
@@ -346,8 +335,8 @@
           <div class="card stat-card compliance-good">
             <div class="card-body text-center">
               <i class="fas fa-check-circle stat-icon"></i>
-              <h3 class="mt-3 mb-1">95%</h3>
-              <p class="mb-0">Compliance Status</p>
+              <h3 class="mt-3 mb-1" id="stat-establishments">—</h3>
+              <p class="mb-0">My Establishments</p>
             </div>
           </div>
         </div>
@@ -355,7 +344,7 @@
           <div class="card stat-card info-card">
             <div class="card-body text-center">
               <i class="fas fa-calendar-check stat-icon"></i>
-              <h3 class="mt-3 mb-1">2</h3>
+              <h3 class="mt-3 mb-1" id="stat-upcoming">—</h3>
               <p class="mb-0">Upcoming Inspections</p>
             </div>
           </div>
@@ -364,7 +353,7 @@
           <div class="card stat-card compliance-warning">
             <div class="card-body text-center">
               <i class="fas fa-certificate stat-icon"></i>
-              <h3 class="mt-3 mb-1">3</h3>
+              <h3 class="mt-3 mb-1" id="stat-certs">—</h3>
               <p class="mb-0">Active Certificates</p>
             </div>
           </div>
@@ -373,8 +362,8 @@
           <div class="card stat-card compliance-danger">
             <div class="card-body text-center">
               <i class="fas fa-exclamation-triangle stat-icon"></i>
-              <h3 class="mt-3 mb-1">1</h3>
-              <p class="mb-0">Action Required</p>
+              <h3 class="mt-3 mb-1" id="stat-completed">—</h3>
+              <p class="mb-0">Completed Inspections</p>
             </div>
           </div>
         </div>
@@ -396,19 +385,8 @@
                   <th>Status</th>
                 </tr>
               </thead>
-              <tbody>
-                <tr>
-                  <td>Fire Safety Inspection</td>
-                  <td>October 28, 2025</td>
-                  <td>Insp. Rodriguez</td>
-                  <td><span class="badge bg-warning badge-status">Scheduled</span></td>
-                </tr>
-                <tr>
-                  <td>Annual Compliance Check</td>
-                  <td>November 5, 2025</td>
-                  <td>Insp. Santos</td>
-                  <td><span class="badge bg-info badge-status">Pending</span></td>
-                </tr>
+              <tbody id="upcomingTbody">
+                <tr><td colspan="4" class="text-center py-3"><span class="spinner-border spinner-border-sm me-2"></span>Loading…</td></tr>
               </tbody>
             </table>
           </div>
@@ -422,12 +400,12 @@
   </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+  <script src="../../assets/scripts/user-dashboard.js"></script>
   <script>
     // Notification System
     const notificationBell = document.getElementById('notificationBell');
     const notificationDropdown = document.getElementById('notificationDropdown');
     const notificationCount = document.getElementById('notificationCount');
-    let unreadCount = 3;
 
     notificationBell.addEventListener('click', function(e) {
       e.stopPropagation();
@@ -441,20 +419,9 @@
       }
     });
 
-    // Mark notification as read when clicked
-    document.querySelectorAll('.notification-item').forEach(item => {
-      item.addEventListener('click', function() {
-        if (this.classList.contains('unread')) {
-          this.classList.remove('unread');
-          unreadCount--;
-          updateNotificationCount();
-        }
-      });
-    });
-
     function updateNotificationCount() {
-      if (unreadCount > 0) {
-        notificationCount.textContent = unreadCount;
+      const count = parseInt(notificationCount.textContent) || 0;
+      if (count > 0) {
         notificationCount.style.display = 'flex';
       } else {
         notificationCount.style.display = 'none';

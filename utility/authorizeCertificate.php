@@ -2,9 +2,12 @@
 session_start();
 header('Content-Type: application/json');
 
-// Check if logged in
+// Check if logged in and restrict to Admin role
 if (!isset($_SESSION['user'])) {
     die(json_encode(['success' => false, 'message' => 'Not authenticated']));
+}
+if (strtolower($_SESSION['role']) !== 'admin') {
+    die(json_encode(['success' => false, 'message' => 'Unauthorized: Admin role required']));
 }
 
 // Get input
@@ -54,13 +57,14 @@ $conn->query("CREATE TABLE IF NOT EXISTS certificates (
     certificate_number VARCHAR(50)
 )");
 
-// Generate certificate number
-$status = ($action === 'authorize') ? 'authorized' : 'denied';
-$certNum = ($action === 'authorize') ? 'BFP-FSIC-2025-' . str_pad($inspectionId, 6, '0', STR_PAD_LEFT) : null;
+// Generate certificate number and expiry
+$status  = ($action === 'authorize') ? 'authorized' : 'denied';
+$certNum = ($action === 'authorize') ? 'BFP-FSIC-' . date('Y') . '-' . str_pad($inspectionId, 6, '0', STR_PAD_LEFT) : null;
+$expiryDate = ($action === 'authorize') ? date('Y-m-d', strtotime('+1 year')) : null;
 
 // Insert certificate
-$stmt = $conn->prepare("INSERT INTO certificates (inspection_id, establishment_id, status, authorized_by, certificate_number) VALUES (?, ?, ?, ?, ?)");
-$stmt->bind_param("iisis", $inspectionId, $establishmentId, $status, $userId, $certNum);
+$stmt = $conn->prepare("INSERT INTO certificates (inspection_id, establishment_id, status, authorized_by, certificate_number, expiry_date) VALUES (?, ?, ?, ?, ?, ?)");
+$stmt->bind_param("iisiss", $inspectionId, $establishmentId, $status, $userId, $certNum, $expiryDate);
 
 if ($stmt->execute()) {
     $certId = $stmt->insert_id;
@@ -78,6 +82,7 @@ if ($stmt->execute()) {
         'message' => $action === 'authorize' ? 'Authorized' : 'Denied',
         'certificateId' => $certId,
         'certificateNumber' => $certNum,
+        'expiry_date' => $expiryDate,
         'status' => $status
     ]);
 } else {

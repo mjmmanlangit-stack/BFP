@@ -21,7 +21,6 @@ if ($data) {
     if ($result->num_rows > 0) {
         $row = $result->fetch_assoc();
         
-        // Trim password from database for comparison
         $dbPassword = trim($row["password"]);
         
         // Check if user is active
@@ -39,12 +38,21 @@ if ($data) {
                 'Account is inactive'
             );
             echo json_encode(["error" => "Account is inactive. Please contact administrator."]);
-        } elseif ($password === $dbPassword) {
+        } elseif (password_verify($password, $dbPassword) || $password === $dbPassword) {
             session_start();
             $_SESSION['user'] = $row['id'];
             $_SESSION['role'] = $row['role'];
             $_SESSION['email'] = $row['email'];
             $_SESSION['fullname'] = $row['fullname'];
+
+            // Auto-upgrade plain-text passwords to bcrypt on first login
+            if (!str_starts_with($dbPassword, '$2y$')) {
+                $hashed = password_hash($password, PASSWORD_DEFAULT);
+                $rehash = $conn->prepare("UPDATE user SET password = ? WHERE id = ?");
+                $rehash->bind_param("si", $hashed, $row['id']);
+                $rehash->execute();
+                $rehash->close();
+            }
             
             // Log successful login
             $activityLogger->logLogin($row['id'], true);

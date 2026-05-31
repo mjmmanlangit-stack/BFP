@@ -33,14 +33,31 @@ let establishments = [
 ];
 
 async function getEstablisment(){
-  const res = await fetch("../../utility/getMyEstablishment.php")
-  const json = await res.json()
+  try {
+    const res  = await fetch("../../utility/getMyEstablishment.php");
+    const json = await res.json();
 
-  json.forEach(e=>{
-    establishments.push({...e, coordinates:{lat: parseFloat(e.lat), lng: parseFloat(e.lng)}, status:"active"})
-  })
-  console.log(establishments)
-  updateEstablishmentsTable();
+    if (!Array.isArray(json)) {
+      console.error('Failed to load establishments:', json);
+      updateEstablishmentsTable();
+      return;
+    }
+
+    // Reset before reload to prevent duplicates on re-fetch
+    establishments = [];
+    json.forEach(e => {
+      establishments.push({
+        ...e,
+        coordinates: {
+          lat: parseFloat(e.lat)  || 0,
+          lng: parseFloat(e.lng) || 0
+        }
+      });
+    });
+    updateEstablishmentsTable();
+  } catch (err) {
+    console.error('Error fetching establishments:', err);
+  }
 }
 
 getEstablisment()
@@ -160,21 +177,25 @@ function viewEstablishment(id) {
 function editEstablishment(id) {
   const establishment = establishments.find((e) => e.id === id);
   if (establishment) {
-    document.getElementById("editEstablishmentName").value = establishment.name;
-    document.getElementById("editOwnershipType").value = establishment.bfpRegNo;
-    document.getElementById("editAddress").value = establishment.address;
-    document.getElementById("editBusinessType").value = establishment.type;
-    document.getElementById("editLongitude").textContent =
-      establishment.coordinates.lng.toFixed(6);
-    document.getElementById("editLatitude").textContent =
-      establishment.coordinates.lat.toFixed(6);
+    document.getElementById("editEstablishmentName").value = establishment.name  || '';
+    document.getElementById("editBusinessType").value      = establishment.type  || '';
+    document.getElementById("editOwnershipType").value     = establishment.ownership_type || '';
+    document.getElementById("editTINNo").value             = establishment.tin_number     || '';
+    document.getElementById("editContactNum").value        = establishment.contact_number || '';
+    document.getElementById("editEmailAdd").value          = establishment.contact_email  || '';
+    document.getElementById("editAddress").value           = establishment.address || '';
 
-       const editModalEl = new bootstrap.Modal(
+    const lng = establishment.coordinates?.lng;
+    const lat = establishment.coordinates?.lat;
+    document.getElementById("editLongitude").textContent = (lng && lng !== 0) ? lng.toFixed(6) : 'Not selected';
+    document.getElementById("editLatitude").textContent  = (lat && lat !== 0) ? lat.toFixed(6) : 'Not selected';
+
+    const editModalEl = new bootstrap.Modal(
       document.getElementById("editEstablishmentModal")
     );
     editModalEl.show();
 
-    // Store the ID for updating
+    // Store the ID for the update call
     document
       .getElementById("editEstablishmentForm")
       .setAttribute("data-establishment-id", id);
@@ -184,45 +205,45 @@ function editEstablishment(id) {
 async function saveEstablishment() {
   const form = document.getElementById("addEstablishmentForm");
   if (form.checkValidity()) {
-    const businessName = document.getElementById("businessName").value;
-    const bfpRegNo = document.getElementById("bfpRegNo").value;
-    const address = document.getElementById("address").value;
-    const longitude = document.getElementById("longitude").textContent;
-    const latitude = document.getElementById("latitude").textContent;
-    const business_type = document.getElementById("businessType").textContent;
+    const businessName   = document.getElementById("businessName").value;
+    const businessType   = document.getElementById("businessType").value;
+    const ownershipType  = document.getElementById("ownershipType").value;
+    const tinNumber      = document.getElementById("tinNumber").value;
+    const contactNum     = document.getElementById("contactNum").value;
+    const emailAdd       = document.getElementById("emailAdd").value;
+    const address        = document.getElementById("address").value;
+    const longitude      = document.getElementById("longitude").textContent;
+    const latitude       = document.getElementById("latitude").textContent;
 
-    // Add to establishments array (in real app, this would be an API call)
-    const newEstablishment = {
-      id: establishments.length + 1,
-      name: businessName,
-      type: business_type, // Default type
-      bfpRegNo: bfpRegNo,
-      address: address,
-      status: "Active",
-      lastInspection: "Not yet",
-      coordinates: {
-        lat: longitude !== "Not selected" ? parseFloat(latitude) : 0,
-        lng: longitude !== "Not selected" ? parseFloat(longitude) : 0,
-      },
-    };
+    let res, json;
+    try {
+      res  = await fetch('../../utility/addNewEstablishment.php', {
+        method:  "POST",
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          business_name:   businessName,
+          registration_no: '',
+          type:            businessType,
+          ownership_type:  ownershipType,
+          tin_number:      tinNumber,
+          contact_number:  contactNum,
+          contact_email:   emailAdd,
+          address:         address,
+          x_coordinate:   longitude !== "Not selected" ? longitude : '',
+          y_coordinate:   latitude  !== "Not selected" ? latitude  : '',
+        })
+      });
+      json = await res.json();
+    } catch (err) {
+      alert("Network error: " + err.message);
+      return;
+    }
 
-    establishments.push(newEstablishment);
-    updateEstablishmentsTable();
-    const res =  await fetch('../../utility/addNewEstablishment.php',{
-      method:"POST",
-      headers:{'Content-Type': 'application/json'},
-      body:JSON.stringify({
-        business_name:businessName,
-        registration_no: bfpRegNo,
-        address: address,
-        x_coordinate: longitude,
-        y_coordinate: latitude,
-        type: business_type,
-        
-      })
-    })
-    const json = await res.json()
-    // console.log(json)
+    if (json.error) {
+      alert("Error: " + json.error);
+      return;
+    }
+
     // Close modal and reset form
     const addModalEl = bootstrap.Modal.getInstance(
       document.getElementById("addEstablishmentModal")
@@ -230,8 +251,10 @@ async function saveEstablishment() {
     addModalEl.hide();
     form.reset();
     document.getElementById("longitude").textContent = "Not selected";
-    document.getElementById("latitude").textContent = "Not selected";
+    document.getElementById("latitude").textContent  = "Not selected";
 
+    // Reload from server so IDs and data are always in sync with the DB
+    await getEstablisment();
     alert("Establishment added successfully!");
   } else {
     form.reportValidity();
@@ -243,53 +266,53 @@ async function updateEstablishment() {
   const establishmentId = parseInt(form.getAttribute("data-establishment-id"));
 
   if (form.checkValidity()) {
-    const businessName = document.getElementById("editBusinessName").value;
-    const bfpRegNo = document.getElementById("editBfpRegNo").value;
-    const address = document.getElementById("editAddress").value;
-    const longitude = document.getElementById("editLongitude").textContent;
-    const latitude = document.getElementById("editLatitude").textContent;
-    const business_type = document.getElementById("editBusinessType").value;
-    const res =  await fetch('../../utility/updateMyEstablishment.php',{
-      method:"POST",
-      headers:{'Content-Type': 'application/json'},
-      body:JSON.stringify({
-        business_name:businessName,
-        registration_no: bfpRegNo,
-        address: address,
-        x_coordinate: longitude,
-        y_coordinate: latitude,
-        type: business_type,
-        id: establishmentId
-      })
-    })
-    const json = await res.json()
-    console.log(json)
-    // Update establishment in array (in real app, this would be an API call)
-    const establishmentIndex = establishments.findIndex(
-      (e) => e.id === establishmentId
-    );
-    if (establishmentIndex !== -1) {
-      establishments[establishmentIndex].name = businessName;
-      establishments[establishmentIndex].bfpRegNo = bfpRegNo;
-      establishments[establishmentIndex].address = address;
-      establishments[establishmentIndex].type = business_type;
-      if (longitude !== "Not selected") {
-        establishments[establishmentIndex].coordinates.lng =
-          parseFloat(longitude);
-        establishments[establishmentIndex].coordinates.lat =
-          parseFloat(latitude);
-      }
+    const businessName  = document.getElementById("editEstablishmentName").value;
+    const businessType  = document.getElementById("editBusinessType").value;
+    const ownershipType = document.getElementById("editOwnershipType").value;
+    const tinNumber     = document.getElementById("editTINNo").value;
+    const contactNum    = document.getElementById("editContactNum").value;
+    const emailAdd      = document.getElementById("editEmailAdd").value;
+    const address       = document.getElementById("editAddress").value;
+    const longitude     = document.getElementById("editLongitude").textContent;
+    const latitude      = document.getElementById("editLatitude").textContent;
 
-      updateEstablishmentsTable();
-
-      // Close modal
-      const editModalEl = bootstrap.Modal.getInstance(
-        document.getElementById("editEstablishmentModal")
-      );
-      editModalEl.hide();
-
-      alert("Establishment updated successfully!");
+    let res, json;
+    try {
+      res  = await fetch('../../utility/updateMyEstablishment.php', {
+        method:  "POST",
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id:              establishmentId,
+          business_name:  businessName,
+          type:           businessType,
+          ownership_type: ownershipType,
+          tin_number:     tinNumber,
+          contact_number: contactNum,
+          contact_email:  emailAdd,
+          address:        address,
+          x_coordinate:  longitude !== "Not selected" ? longitude : '',
+          y_coordinate:  latitude  !== "Not selected" ? latitude  : '',
+          registration_no: '',
+        })
+      });
+      json = await res.json();
+    } catch (err) {
+      alert("Network error: " + err.message);
+      return;
     }
+
+    if (json.error) {
+      alert("Error: " + json.error);
+      return;
+    }
+
+    // Close modal and reload from server
+    const editModalEl = bootstrap.Modal.getInstance(
+      document.getElementById("editEstablishmentModal")
+    );
+    editModalEl.hide();
+    await getEstablisment();
+    alert("Establishment updated successfully!");
   } else {
     form.reportValidity();
   }

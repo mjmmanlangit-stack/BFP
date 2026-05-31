@@ -1,3 +1,10 @@
+<?php
+session_start();
+if (!isset($_SESSION['user']) || strtolower($_SESSION['role']) !== 'admin') {
+    header('Location: ../index.php');
+    exit;
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -50,13 +57,19 @@
           </a>
         </div>
         <div class="nav-item">
-          <a href="./schedule-inspections.php" class="nav-link active">
+          <a href="./schedule-inspections.php" class="nav-link">
             <i class="fas fa-calendar-check"></i>
             Schedule Inspections
           </a>
         </div>
         <div class="nav-item">
-          <a href="#" class="nav-link">
+          <a href="./certificate-authorization.php" class="nav-link">
+            <i class="fas fa-certificate"></i>
+            Certificate Authorization
+          </a>
+        </div>
+        <div class="nav-item">
+          <a href="./gis-map.php" class="nav-link">
             <i class="fas fa-map-marker-alt"></i>
             GIS Map
           </a>
@@ -75,8 +88,8 @@
         </div>
       </nav>
 
-      <div class="nav-item">
-        <a href="../index.php" class="nav-link">
+      <div class="sidebar-logout">
+        <a href="../../utility/logout.php" class="nav-link">
           <i class="fas fa-sign-out-alt"></i>
           Logout
         </a>
@@ -95,8 +108,8 @@
         </div>
         <div class="admin-info">
           <i class="fas fa-bell text-danger"></i>
-          <div class="admin-avatar">AD</div>
-          <span class="ms-2">Admin User</span>
+          <div class="admin-avatar"><?php echo strtoupper(substr($_SESSION['fullname'] ?? 'AD', 0, 1)) . strtoupper(substr(strstr($_SESSION['fullname'] ?? '', ' '), 1, 1)); ?></div>
+          <span class="ms-2"><?php echo htmlspecialchars($_SESSION['fullname'] ?? 'Admin'); ?></span>
         </div>
       </div>
 
@@ -110,7 +123,7 @@
         <!-- Controls Bar -->
         <div class="controls-bar">
           <div class="controls-left">
-            <h5>All Establishments (<span id="totalCount">142</span>)</h5>
+            <h5>All Establishments (<span id="totalCount">0</span>)</h5>
           </div>
           <!-- <div class="controls-right">
             <button class="btn btn-bfp-secondary" id="filterBtn">

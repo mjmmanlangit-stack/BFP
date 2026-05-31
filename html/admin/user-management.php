@@ -1,3 +1,10 @@
+<?php
+session_start();
+if (!isset($_SESSION['user']) || strtolower($_SESSION['role']) !== 'admin') {
+    header('Location: ../index.php');
+    exit;
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -140,15 +147,51 @@
           </a>
         </div>
         <div class="nav-item">
+          <a href="./establishments.php" class="nav-link">
+            <i class="fas fa-building"></i>
+            Establishments
+          </a>
+        </div>
+        <div class="nav-item">
+          <a href="./schedule-inspections.php" class="nav-link">
+            <i class="fas fa-calendar-check"></i>
+            Schedule Inspections
+          </a>
+        </div>
+        <div class="nav-item">
+          <a href="./certificate-authorization.php" class="nav-link">
+            <i class="fas fa-certificate"></i>
+            Certificate Authorization
+          </a>
+        </div>
+        <div class="nav-item">
+          <a href="./gis-map.php" class="nav-link">
+            <i class="fas fa-map-marker-alt"></i>
+            GIS Map
+          </a>
+        </div>
+        <div class="nav-item">
+          <a href="./reports.php" class="nav-link">
+            <i class="fas fa-file-alt"></i>
+            Reports
+          </a>
+        </div>
+        <div class="nav-item">
           <a href="./user-management.php" class="nav-link active">
-            <i class="fas fa-user"></i>
+            <i class="fas fa-users"></i>
             User Management
+          </a>
+        </div>
+        <div class="nav-item">
+          <a href="./activity-logs.php" class="nav-link">
+            <i class="fas fa-history"></i>
+            Activity Logs
           </a>
         </div>
       </nav>
 
-      <div class="nav-item">
-        <a href="../index.php" class="nav-link">
+      <div class="sidebar-logout">
+        <a href="../../utility/logout.php" class="nav-link">
           <i class="fas fa-sign-out-alt"></i>
           Logout
         </a>
@@ -189,11 +232,9 @@
                   <select class="form-select" id="filterRole">
                     <option value="">All Roles</option>
                     <option value="admin">Admin</option>
-                    <option value="Inspector">Inspector</option>
+                    <option value="inspector">Inspector</option>
                     <option value="Chief">Chief</option>
-                    <option value="Fire Marshal">Fire Marshal</option>
-                    <option value="CRO">Customer Relationship Officer</option>
-                    <option value="Accessor">Accessor</option>
+                    <option value="cro">Customer Relationship Officer</option>
                     <option value="owner">Owner</option>
                   </select>
                 </div>
@@ -201,8 +242,8 @@
             </div>
 
             <div class="table-responsive">
-              <table class="table table-hover" id="userTable">
-                <thead>
+              <thead>
+                  <table class="table table-hover" id="userTable">
                   <tr>
                     <th>Full Name</th>
                     <th>Role</th>
@@ -280,11 +321,9 @@
                 <select class="form-select" id="addRole" required>
                   <option value="">Select Role</option>
                   <option value="admin">Admin</option>
-                  <option value="Inspector">Inspector</option>
+                  <option value="inspector">Inspector</option>
                   <option value="Chief">Chief</option>
-                  <option value="Fire Marshal">Fire Marshal</option>
-                  <option value="CRO">Customer Relationship Officer</option>
-                  <option value="Accessor">Accessor</option>
+                  <option value="cro">Customer Relationship Officer</option>
                   <option value="owner">Owner</option>
                 </select>
               </div>
@@ -308,6 +347,26 @@
             <button type="button" class="btn btn-bfp-red" onclick="addUser()">
               Add User
             </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Remove User Confirm Modal -->
+    <div class="modal fade" id="removeUserModal" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header bg-danger text-white">
+            <h5 class="modal-title"><i class="fas fa-exclamation-triangle"></i> Remove User</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <p>Are you sure you want to remove <strong id="removeUserName"></strong>?</p>
+            <p class="text-muted small">This action cannot be undone. The user will be notified via email.</p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-danger" id="confirmRemoveBtn"><i class="fas fa-trash"></i> Remove</button>
           </div>
         </div>
       </div>
@@ -368,11 +427,9 @@
                 <label class="form-label">Role</label>
                 <select class="form-select" id="editRole" required>
                   <option value="admin">Admin</option>
-                  <option value="Inspector">Inspector</option>
+                  <option value="inspector">Inspector</option>
                   <option value="Chief">Chief</option>
-                  <option value="Fire Marshal">Fire Marshal</option>
-                  <option value="CRO">Customer Relationship Officer</option>
-                  <option value="Accessor">Accessor</option>
+                  <option value="cro">Customer Relationship Officer</option>
                   <option value="owner">Owner</option>
                 </select>
               </div>
@@ -502,9 +559,7 @@
         const badges = {
           Inspector: "bg-danger",
           Chief: "bg-warning text-dark",
-          "Fire Marshal": "bg-dark",
           CRO: "bg-info",
-          Accessor: "bg-success",
           admin: "bg-primary",
           owner: "bg-secondary",
           inspector: "bg-danger"
@@ -550,6 +605,9 @@
                           user.id
                         })">
                             <i class="fas fa-edit"></i> Edit
+                        </button>
+                        <button class="btn btn-sm btn-danger action-btn" onclick="confirmRemoveUser(${user.id}, '${user.fullname.replace(/'/g, "\\'") }')">
+                            <i class="fas fa-trash"></i> Remove
                         </button>
                     </td>
                 `;
@@ -770,6 +828,34 @@
         } catch (error) {
           console.error('Error loading user:', error);
           showAlert("Failed to load user details", "danger");
+        }
+      }
+
+      function confirmRemoveUser(id, name) {
+        document.getElementById('removeUserName').textContent = name;
+        const confirmBtn = document.getElementById('confirmRemoveBtn');
+        confirmBtn.onclick = () => removeUser(id);
+        const modal = new bootstrap.Modal(document.getElementById('removeUserModal'));
+        modal.show();
+      }
+
+      async function removeUser(id) {
+        try {
+          const response = await fetch(`../../utility/deleteUser.php?id=${id}`);
+          const result = await response.json();
+
+          const modal = bootstrap.Modal.getInstance(document.getElementById('removeUserModal'));
+          modal.hide();
+
+          if (result.success) {
+            showAlert('User removed successfully and notified via email.', 'success');
+            await loadUsers();
+          } else {
+            showAlert(result.error || 'Failed to remove user.', 'danger');
+          }
+        } catch (error) {
+          console.error('Error removing user:', error);
+          showAlert('Failed to remove user. Please try again.', 'danger');
         }
       }
 

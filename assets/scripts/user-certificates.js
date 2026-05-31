@@ -1,135 +1,53 @@
-// Sample data
-const certificatesData = [
-  {
-    id: 1,
-    certificateNo: "FSIC-2023-0456",
-    establishment: "Delicious Restaurant",
-    address: "123 Main St, Calamba City",
-    issuedDate: "2023-05-20",
-    expiryDate: "2024-05-20",
-    status: "Active",
-    officer: "Fire Inspector John D. Santos",
-  },
-  {
-    id: 2,
-    certificateNo: "FSIC-2022-0891",
-    establishment: "Juan's Hardware Store",
-    address: "456 Commerce Ave, Calamba City",
-    issuedDate: "2022-06-15",
-    expiryDate: "2023-06-15",
-    status: "Expired",
-    officer: "Fire Inspector Maria C. Reyes",
-  },
-  {
-    id: 3,
-    certificateNo: "FSIC-2023-1023",
-    establishment: "Cruz Family Apartment",
-    address: "789 Residential St, Calamba City",
-    issuedDate: "Pending",
-    expiryDate: "Pending",
-    status: "Pending",
-    officer: "Fire Inspector Roberto L. Garcia",
-  },
-  {
-    id: 4,
-    certificateNo: "FSIC-2023-1024",
-    establishment: "Cruz Family Apartment",
-    address: "789 Residential St, Calamba City",
-    issuedDate: "Pending",
-    expiryDate: "Pending",
-    status: "Pending",
-    officer: "Fire Inspector Roberto L. Garcia",
-  },
-  {
-    id: 4,
-    certificateNo: "FSIC-2023-1024",
-    establishment: "Cruz Family Apartment",
-    address: "789 Residential St, Calamba City",
-    issuedDate: "Pending",
-    expiryDate: "Pending",
-    status: "Pending",
-    officer: "Fire Inspector Roberto L. Garcia",
-  },
-  {
-    id: 4,
-    certificateNo: "FSIC-2023-1024",
-    establishment: "Cruz Family Apartment",
-    address: "789 Residential St, Calamba City",
-    issuedDate: "Pending",
-    expiryDate: "Pending",
-    status: "Pending",
-    officer: "Fire Inspector Roberto L. Garcia",
-  },
-  {
-    id: 4,
-    certificateNo: "FSIC-2023-1024",
-    establishment: "Cruz Family Apartment",
-    address: "789 Residential St, Calamba City",
-    issuedDate: "Pending",
-    expiryDate: "Pending",
-    status: "Pending",
-    officer: "Fire Inspector Roberto L. Garcia",
-  },
-  {
-    id: 4,
-    certificateNo: "FSIC-2023-1024",
-    establishment: "Cruz Family Apartment",
-    address: "789 Residential St, Calamba City",
-    issuedDate: "Pending",
-    expiryDate: "Pending",
-    status: "Pending",
-    officer: "Fire Inspector Roberto L. Garcia",
-  },
-  {
-    id: 4,
-    certificateNo: "FSIC-2023-1024",
-    establishment: "Cruz Family Apartment",
-    address: "789 Residential St, Calamba City",
-    issuedDate: "Pending",
-    expiryDate: "Pending",
-    status: "Pending",
-    officer: "Fire Inspector Roberto L. Garcia",
-  },
-  {
-    id: 4,
-    certificateNo: "FSIC-2023-1024",
-    establishment: "Cruz Family Apartment",
-    address: "789 Residential St, Calamba City",
-    issuedDate: "Pending",
-    expiryDate: "Pending",
-    status: "Pending",
-    officer: "Fire Inspector Roberto L. Garcia",
-  },
-  {
-    id: 4,
-    certificateNo: "FSIC-2023-1024",
-    establishment: "Cruz Family Apartment",
-    address: "789 Residential St, Calamba City",
-    issuedDate: "Pending",
-    expiryDate: "Pending",
-    status: "Pending",
-    officer: "Fire Inspector Roberto L. Garcia",
-  },
-  {
-    id: 4,
-    certificateNo: "FSIC-2023-1024",
-    establishment: "Cruz Family Apartment",
-    address: "789 Residential St, Calamba City",
-    issuedDate: "Pending",
-    expiryDate: "Pending",
-    status: "Pending",
-    officer: "Fire Inspector Roberto L. Garcia",
-  },
-];
+﻿// Live certificate data fetched from API
+let certificatesData = [];
+let filteredData     = [];
+let currentPageNum   = 1;
+const itemsPerPage   = 10;
 
-let filteredData = [...certificatesData];
-let currentPageNum = 1;
-const itemsPerPage = 10;
+// Map API response to display format
+function mapCertData(c) {
+  const statusMap = { authorized: "Active", denied: "Denied" };
+  const isExpired = c.expiry_date && new Date(c.expiry_date) < new Date();
+  return {
+    id:            c.id,
+    certificateNo: c.certificate_number || "—",
+    establishment: c.establishment_name || "—",
+    address:       c.address || "—",
+    issuedDate:    c.authorized_at ? c.authorized_at.split(" ")[0] : "Pending",
+    expiryDate:    c.expiry_date || "—",
+    status:        isExpired ? "Expired" : (statusMap[c.status] || c.status),
+    officer:       c.authorized_by_name || "BFP Officer"
+  };
+}
+
+// Fetch certificates from backend
+async function loadCertificates() {
+  const tbody = document.getElementById("certificatesTableBody");
+  if (tbody) tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4"><span class="spinner-border spinner-border-sm me-2"></span>Loading certificates...</td></tr>';
+
+  try {
+    const res = await fetch("../../utility/getCertificatesByOwner.php");
+    const j   = await res.json();
+
+    if (j.success) {
+      certificatesData = j.certificates.map(mapCertData);
+      filteredData     = [...certificatesData];
+    } else {
+      certificatesData = [];
+      filteredData     = [];
+    }
+  } catch (err) {
+    certificatesData = [];
+    filteredData     = [];
+  }
+
+  renderTable();
+  updatePagination();
+}
 
 // Initialize the page
 document.addEventListener("DOMContentLoaded", function () {
-  renderTable();
-  updatePagination();
+  loadCertificates();
 });
 
 // Render table
@@ -544,3 +462,4 @@ function printCertificate() {
   printWindow.document.close();
   printWindow.print();
 }
+

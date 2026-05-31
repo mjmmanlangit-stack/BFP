@@ -1,162 +1,147 @@
-// Sample data for establishments
-const establishmentData = [
-  {
-    id: 1,
-    name: "Virac Public Market",
-    type: "Commercial",
-    lastInspection: "June 15, 2025",
-    inspector: "Juan Dela Cruz",
-    status: "Non-Compliant",
-    violations: 3,
-    address: "Public Market St., Virac, Catanduanes",
-    contact: "(054) 123-4567",
-    violationsList: [
-      "Missing fire extinguisher in meat section",
-      "Blocked emergency exit",
-      "Inadequate fire alarm system",
-    ],
-  },
-  {
-    id: 2,
-    name: "Catanduanes State University",
-    type: "Institutional",
-    lastInspection: "June 10, 2025",
-    inspector: "Maria Santos",
-    status: "Compliant",
-    violations: 0,
-    address: "Virac, Catanduanes",
-    contact: "(054) 987-6543",
-    violationsList: [],
-  },
-  {
-    id: 3,
-    name: "Virac Town Center",
-    type: "Commercial",
-    lastInspection: "June 5, 2025",
-    inspector: "Roberto Pacquiao",
-    status: "Compliant",
-    violations: 0,
-    address: "Rizal Street, Virac, Catanduanes",
-    contact: "(054) 456-7890",
-    violationsList: [],
-  },
-  {
-    id: 4,
-    name: "BFP Catanduanes",
-    type: "Government",
-    lastInspection: "May 28, 2025",
-    inspector: "Juan Dela Cruz",
-    status: "Pending",
-    violations: 1,
-    address: "Provincial Capitol Complex, Virac",
-    contact: "(054) 321-0987",
-    violationsList: ["Expired fire extinguisher in storage room"],
-  },
-  {
-    id: 5,
-    name: "Virac Municipal Hall",
-    type: "Government",
-    lastInspection: "May 20, 2025",
-    inspector: "Maria Santos",
-    status: "Compliant",
-    violations: 0,
-    address: "Municipal Complex, Virac",
-    contact: "(054) 654-3210",
-    violationsList: [],
-  },
-  {
-    id: 6,
-    name: "SM Savemore Virac",
-    type: "Commercial",
-    lastInspection: "May 15, 2025",
-    inspector: "Roberto Pacquiao",
-    status: "Non-Compliant",
-    violations: 2,
-    address: "Maharlika Highway, Virac",
-    contact: "(054) 789-0123",
-    violationsList: [
-      "Improper storage of flammable materials",
-      "Non-functional smoke detector",
-    ],
-  },
-  {
-    id: 7,
-    name: "Catanduanes General Hospital",
-    type: "Institutional",
-    lastInspection: "May 10, 2025",
-    inspector: "Juan Dela Cruz",
-    status: "Compliant",
-    violations: 0,
-    address: "Hospital Road, Virac",
-    contact: "(054) 234-5678",
-    violationsList: [],
-  },
-  {
-    id: 8,
-    name: "Virac Central School",
-    type: "Institutional",
-    lastInspection: "May 5, 2025",
-    inspector: "Maria Santos",
-    status: "Pending",
-    violations: 1,
-    address: "Education St., Virac",
-    contact: "(054) 567-8901",
-    violationsList: ["Missing fire drill documentation"],
-  },
-  {
-    id: 9,
-    name: "Petron Gas Station",
-    type: "Commercial",
-    lastInspection: "April 28, 2025",
-    inspector: "Roberto Pacquiao",
-    status: "Non-Compliant",
-    violations: 4,
-    address: "National Highway, Virac",
-    contact: "(054) 890-1234",
-    violationsList: [
-      "Faulty fire suppression system",
-      "Inadequate safety signage",
-      "Missing spill containment",
-      "Expired safety permits",
-    ],
-  },
-  {
-    id: 10,
-    name: "Gaisano Grand Mall",
-    type: "Commercial",
-    lastInspection: "April 25, 2025",
-    inspector: "Juan Dela Cruz",
-    status: "Compliant",
-    violations: 0,
-    address: "Real St., Virac",
-    contact: "(054) 345-6789",
-    violationsList: [],
-  },
-  {
-    id: 11,
-    name: "Gaisano Grand Mall",
-    type: "Commercial",
-    lastInspection: "April 25, 2025",
-    inspector: "Juan Dela Cruz",
-    status: "Compliant",
-    violations: 0,
-    address: "Real St., Virac",
-    contact: "(054) 345-6789",
-    violationsList: [],
-  },
-  {
-    id: 12,
-    name: "Gaisano Grand Mall",
-    type: "Commercial",
-    lastInspection: "April 25, 2025",
-    inspector: "Juan Dela Cruz",
-    status: "Compliant",
-    violations: 0,
-    address: "Real St., Virac",
-    contact: "(054) 345-6789",
-    violationsList: [],
-  },
-];
+/* =========================================================
+   reports.js  –  Live reports dashboard (admin)
+   Fetches data from ../../utility/getReportData.php
+   ========================================================= */
+
+let complianceChartInst = null;
+let inspectionChartInst = null;
+let violationsChartInst = null;
+
+/* ---------- CSV export helper ---------- */
+function exportCSV(rows, filename) {
+  const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+}
+
+/* ---------- Load & render live data ---------- */
+async function loadReportData() {
+  try {
+    const res = await fetch('../../utility/getReportData.php');
+    const d   = await res.json();
+    if (!d.success) { console.error('getReportData:', d.message); return; }
+
+    renderComplianceChart(d.complianceDist);
+    renderInspectionChart(d.monthlyTrend);
+    renderViolationsChart(d.monthlyTrend);
+  } catch (e) { console.error('Reports load error:', e); }
+}
+
+/* ---------- Compliance doughnut ---------- */
+function renderComplianceChart(dist) {
+  const ctx = document.getElementById('complianceChart');
+  if (!ctx) return;
+  if (complianceChartInst) complianceChartInst.destroy();
+  complianceChartInst = new Chart(ctx.getContext('2d'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Compliant', 'Partially Compliant', 'Non-Compliant'],
+      datasets: [{
+        data: [
+          dist.compliant            || 0,
+          dist.partially_compliant  || 0,
+          dist.non_compliant        || 0
+        ],
+        backgroundColor: ['#28a745', '#ffc107', '#dc3545'],
+        borderWidth: 0
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      aspectRatio: 2,
+      plugins: { legend: { position: 'bottom' } }
+    }
+  });
+}
+
+/* ---------- Inspection activity bar ---------- */
+function renderInspectionChart(trend) {
+  const ctx = document.getElementById('inspectionChart');
+  if (!ctx) return;
+  if (inspectionChartInst) inspectionChartInst.destroy();
+
+  const labels    = trend.map(t => t.month);
+  const completed = trend.map(t => parseInt(t.completed) || 0);
+
+  inspectionChartInst = new Chart(ctx.getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Completed Inspections',
+        data: completed,
+        backgroundColor: '#dc3545',
+        borderRadius: 5
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      aspectRatio: 2,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true } }
+    }
+  });
+}
+
+/* ---------- Stacked monthly totals bar ---------- */
+function renderViolationsChart(trend) {
+  const ctx = document.getElementById('violationsChart');
+  if (!ctx) return;
+  if (violationsChartInst) violationsChartInst.destroy();
+
+  const labels    = trend.map(t => t.month);
+  const completed = trend.map(t => parseInt(t.completed) || 0);
+  const scheduled = trend.map(t => parseInt(t.scheduled) || 0);
+
+  violationsChartInst = new Chart(ctx.getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Completed', data: completed, backgroundColor: '#28a745' },
+        { label: 'Scheduled', data: scheduled, backgroundColor: '#ffc107' }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      aspectRatio: 2,
+      plugins: { legend: { display: true, position: 'bottom' } },
+      scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true } }
+    }
+  });
+}
+
+/* ---------- Modal detail – live data from API ---------- */
+// Dynamic establishment data loaded from backend
+let establishmentData = [];
+
+// Fetch establishment data for modal details
+async function loadEstablishmentData() {
+  try {
+    const res = await fetch('../../utility/adminGetEstablishment.php');
+    const data = await res.json();
+    if (Array.isArray(data)) {
+      establishmentData = data.map((e, idx) => ({
+        id: e.id || idx + 1,
+        name: e.name || 'N/A',
+        type: e.type || 'N/A',
+        lastInspection: e.lastInspection ? new Date(e.lastInspection).toLocaleDateString('en-US', {year:'numeric', month:'long', day:'numeric'}) : 'N/A',
+        inspector: 'N/A',
+        status: e.status || 'Pending',
+        violations: 0,
+        address: e.location || e.address || 'N/A',
+        contact: e.contact || 'N/A',
+        violationsList: []
+      }));
+    }
+  } catch (e) { console.error('Error loading establishment data:', e); }
+}
 
 let currentPage = 1;
 const recordsPerPage = 5;
@@ -211,125 +196,14 @@ function showDetails(establishmentName) {
   }
 }
 
-// Initialize Charts
+/* ---------- Bootstrap ---------- */
 document.addEventListener("DOMContentLoaded", function () {
-  // Wait for Chart.js to load
-  // populateTable();
   if (typeof Chart === "undefined") {
     console.error("Chart.js not loaded");
     return;
   }
-
-  // Compliance Overview Pie Chart
-  const complianceCtx = document
-    .getElementById("complianceChart")
-    .getContext("2d");
-  new Chart(complianceCtx, {
-    type: "doughnut",
-    data: {
-      labels: ["Compliant", "Non-Compliant", "Pending"],
-      datasets: [
-        {
-          data: [65, 20, 15],
-          backgroundColor: ["#28a745", "#dc3545", "#ffc107"],
-          borderWidth: 0,
-        },
-      ],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: true,
-      aspectRatio: 2,
-      plugins: {
-        legend: {
-          position: "bottom",
-        },
-      },
-    },
-  });
-
-  // Inspection Activity Bar Chart
-  const inspectionCtx = document
-    .getElementById("inspectionChart")
-    .getContext("2d");
-  new Chart(inspectionCtx, {
-    type: "bar",
-    data: {
-      labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
-      datasets: [
-        {
-          label: "Completed Inspections",
-          data: [45, 52, 48, 61, 55, 67],
-          backgroundColor: "#dc3545",
-          borderRadius: 5,
-        },
-      ],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: true,
-      aspectRatio: 2,
-      plugins: {
-        legend: {
-          display: false,
-        },
-      },
-      scales: {
-        y: {
-          beginAtZero: true,
-          max: 80,
-        },
-      },
-    },
-  });
-
-  // Violations by Type Bar Chart
-  const violationsCtx = document
-    .getElementById("violationsChart")
-    .getContext("2d");
-  new Chart(violationsCtx, {
-    type: "bar",
-    data: {
-      labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
-      datasets: [
-        {
-          label: "Fire Exit Violations",
-          data: [8, 12, 6, 15, 10, 12],
-          backgroundColor: "#dc3545",
-        },
-        {
-          label: "Equipment Violations",
-          data: [5, 8, 4, 10, 7, 8],
-          backgroundColor: "#ffc107",
-        },
-        {
-          label: "Electrical Violations",
-          data: [3, 5, 2, 7, 4, 5],
-          backgroundColor: "#17a2b8",
-        },
-      ],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: true,
-      aspectRatio: 2,
-      plugins: {
-        legend: {
-          display: false,
-        },
-      },
-      scales: {
-        x: {
-          stacked: true,
-        },
-        y: {
-          stacked: true,
-          beginAtZero: true,
-          max: 40,
-        },
-      },
-    },
-  });
+  loadReportData();
+  loadEstablishmentData();
 });
 
 // Filter functionality

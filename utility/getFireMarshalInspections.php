@@ -25,9 +25,14 @@ try {
 }
 
 try {
-    // Check if user is logged in and is Fire Marshal
+    // Check if user is logged in and is Admin (Certificate Authorization feature)
     if (!isset($_SESSION['user'])) {
         echo json_encode(['success' => false, 'message' => 'Not authenticated']);
+        exit;
+    }
+    // Allow admin only (FireMarshal role has been consolidated into Admin)
+    if (strtolower($_SESSION['role']) !== 'admin') {
+        echo json_encode(['success' => false, 'message' => 'Unauthorized']);
         exit;
     }
 

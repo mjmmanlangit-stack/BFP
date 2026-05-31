@@ -2,9 +2,13 @@
 session_start();
 header('Content-Type: application/json');
 
-// Check authentication
+// Check authentication - allow CRO and admin (Accessor role merged into CRO)
 if (!isset($_SESSION['user'])) {
     die(json_encode(['success' => false, 'message' => 'Not authenticated']));
+}
+$role = strtolower($_SESSION['role']);
+if (!in_array($role, ['cro', 'admin'])) {
+    die(json_encode(['success' => false, 'message' => 'Unauthorized']));
 }
 
 // Database connection
@@ -13,11 +17,13 @@ if ($conn->connect_error) {
     die(json_encode(['success' => false, 'message' => 'Database connection failed']));
 }
 
-// Get all inspections with payment info
+// Get all establishments with inspection and payment info
+// Changed to use establishment as main source (LEFT JOIN inspection)
+// This allows new establishments without inspections to appear as "Unpaid"
 $query = "SELECT 
-            i.id as inspection_id,
+            COALESCE(i.id, 0) as inspection_id,
             i.inspection_date,
-            i.payment,
+            COALESCE(i.payment, 0) as payment,
             i.inspection_type,
             e.id as establishment_id,
             e.name as business_name,
@@ -31,14 +37,14 @@ $query = "SELECT
             r.id as report_id,
             r.finalized_at,
             r.compliance_status
-          FROM inspection i
-          INNER JOIN establishment e ON i.establishment_id = e.id
+          FROM establishment e
           LEFT JOIN user owner ON e.owner_id = owner.id
+          LEFT JOIN inspection i ON i.establishment_id = e.id
+            AND i.id = (SELECT MAX(id) FROM inspection WHERE establishment_id = e.id)
           LEFT JOIN user u1 ON i.inspector1 = u1.id
           LEFT JOIN user u2 ON i.inspector2 = u2.id
           LEFT JOIN reports r ON i.id = r.inspection_id
-          WHERE r.finalized_at IS NOT NULL
-          ORDER BY i.inspection_date DESC";
+          ORDER BY COALESCE(i.inspection_date, e.createdAt) DESC";
 
 $result = $conn->query($query);
 $inspections = [];

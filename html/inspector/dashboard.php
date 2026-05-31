@@ -198,6 +198,13 @@ $inspectorName = $_SESSION['fullname'] ?? 'Inspector';
       </div>
     </div>
 
+    <!-- Overdue defects alert (hidden by default) -->
+    <div id="overdueDefectsAlert" class="alert alert-danger d-none mb-4" role="alert">
+        <i class="fas fa-exclamation-circle me-2"></i>
+        <strong>Overdue Defects:</strong> You have <strong id="overdueDefectCount">0</strong> defect(s) past their grace period that need resolution.
+        <a href="./report-findings.php" class="alert-link ms-2">Review findings →</a>
+    </div>
+
     <!-- Secondary Stats Row -->
     <div class="row mb-4">
       <div class="col-xl-3 col-lg-6 col-md-6 col-sm-6 mb-3">
@@ -402,6 +409,19 @@ $inspectorName = $_SESSION['fullname'] ?? 'Inspector';
         console.error('Error:', error);
         showError('Failed to load dashboard data');
       }
+      // Also check overdue defects
+      loadOverdueDefects();
+    }
+
+    async function loadOverdueDefects() {
+      try {
+        const res  = await fetch('../../utility/getOverdueDefects.php');
+        const data = await res.json();
+        if (data.success && data.totalOverdue > 0) {
+          document.getElementById('overdueDefectsAlert').classList.remove('d-none');
+          document.getElementById('overdueDefectCount').textContent = data.totalOverdue;
+        }
+      } catch(e) { /* silent – non-critical */ }
     }
 
     function showError(message) {
@@ -496,17 +516,15 @@ $inspectorName = $_SESSION['fullname'] ?? 'Inspector';
       const ctx = document.getElementById('complianceChart');
       
       const data = {
-        labels: ['Compliant', 'Partially Compliant', 'Non-Compliant', 'Pending'],
+        labels: ['Compliant', 'Non-Compliant', 'Pending'],
         datasets: [{
           data: [
             dashboardData.reports.compliant,
-            dashboardData.reports.partially_compliant,
             dashboardData.reports.non_compliant,
             dashboardData.reports.pending_finalization
           ],
           backgroundColor: [
             '#28a745',
-            '#ffc107',
             '#dc3545',
             '#6c757d'
           ],
@@ -726,8 +744,7 @@ $inspectorName = $_SESSION['fullname'] ?? 'Inspector';
       
       if (status === 'compliant') {
         return '<span class="badge bg-success">Compliant</span>';
-      } else if (status === 'partially_compliant') {
-        return '<span class="badge bg-warning text-dark">Partially Compliant</span>';
+
       } else if (status === 'non_compliant') {
         return '<span class="badge bg-danger">Non-Compliant</span>';
       }

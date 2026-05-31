@@ -39,16 +39,17 @@ try {
                 e.registration_no,
                 e.x_coordinate as latitude,
                 e.y_coordinate as longitude,
-                u1.fullname as inspector1_name,
+                COALESCE(u0.fullname, u1.fullname) as inspector1_name,
                 u2.fullname as inspector2_name,
                 r.id as report_id,
                 r.inspection_order_number
               FROM inspection i
               INNER JOIN establishment e ON i.establishment_id = e.id
+              LEFT JOIN user u0 ON i.inspector = u0.id
               LEFT JOIN user u1 ON i.inspector1 = u1.id
               LEFT JOIN user u2 ON i.inspector2 = u2.id
               LEFT JOIN reports r ON i.id = r.inspection_id
-              WHERE (i.inspector1 = ? OR i.inspector2 = ?)
+              WHERE (i.inspector = ? OR i.inspector1 = ? OR i.inspector2 = ?)
               ORDER BY 
                 CASE 
                     WHEN r.id IS NULL THEN 0
@@ -57,7 +58,7 @@ try {
                 i.inspection_date DESC";
 
     $stmt = $conn->prepare($query);
-    $stmt->bind_param("ii", $inspectorId, $inspectorId);
+    $stmt->bind_param("iii", $inspectorId, $inspectorId, $inspectorId);
     $stmt->execute();
     $result = $stmt->get_result();
 

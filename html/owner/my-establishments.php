@@ -53,16 +53,22 @@ include '../../utility/checkingUser.php';
       </div>
       <div class="nav-item">
         <a href="./certificates.php" class="nav-link ">
-          <i class="fas fa-calendar-check"></i>
+          <i class="fas fa-certificate"></i>
           Certificates
         </a>
       </div>
-      <!-- <div class="nav-item">
-          <a href="./gis-map.html" class="nav-link">
-            <i class="fas fa-map-marker-alt"></i>
-            Documents
-          </a>
-        </div> -->
+      <div class="nav-item">
+        <a href="./documents.php" class="nav-link">
+          <i class="fas fa-file-alt"></i>
+          Documents
+        </a>
+      </div>
+      <div class="nav-item">
+        <a href="./inspection-history.php" class="nav-link">
+          <i class="fas fa-history"></i>
+          Inspection History
+        </a>
+      </div>
     </nav>
 
     <div class="nav-item">
@@ -84,8 +90,8 @@ include '../../utility/checkingUser.php';
         <h4 class="mb-0">My Establishments</h4>
       </div>
       <div class="admin-info">
-        <div class="admin-avatar">JD</div>
-        <span class="ms-2">Juan Dela Cruz</span>
+        <div class="admin-avatar"><?php echo strtoupper(substr($row['fullname'] ?? 'U', 0, 1)) . strtoupper(substr(strstr($row['fullname'] ?? '', ' '), 1, 1)); ?></div>
+        <span class="ms-2"><?php echo htmlspecialchars($row['fullname'] ?? 'Owner'); ?></span>
       </div>
     </div>
 
@@ -105,9 +111,108 @@ include '../../utility/checkingUser.php';
             <label class="form-label">Business Type</label>
             <select class="form-select" id="typeFilter">
               <option value="">All Types</option>
-              <option value="food">Food Service</option>
-              <option value="retail">Retail</option>
-              <option value="residential">Residential</option>
+              <optgroup label="Residential">
+                <option value="Single-Family Residential">Single-Family Residential</option>
+                <option value="Multi-Family Residential">Multi-Family Residential / Apartment</option>
+                <option value="Condominium">Condominium</option>
+                <option value="Boarding House">Boarding House / Dormitory</option>
+              </optgroup>
+              <optgroup label="Commercial">
+                <option value="Shopping Mall">Shopping Mall / Commercial Center</option>
+                <option value="Supermarket / Grocery">Supermarket / Grocery</option>
+                <option value="Retail Store">Retail Store</option>
+                <option value="Convenience Store">Convenience Store</option>
+                <option value="Public Market">Public Market / Palengke</option>
+                <option value="Ukay-Ukay / Thrift Shop">Ukay-Ukay / Thrift Shop</option>
+              </optgroup>
+              <optgroup label="Food &amp; Beverage">
+                <option value="Restaurant">Restaurant / Eatery</option>
+                <option value="Fast Food">Fast Food</option>
+                <option value="Bakery / Pastry Shop">Bakery / Pastry Shop</option>
+                <option value="Catering Service">Catering Service</option>
+                <option value="Bar / Night Club">Bar / Night Club / KTV</option>
+                <option value="Coffee Shop">Coffee Shop / Café</option>
+                <option value="Food Stall / Canteen">Food Stall / Canteen</option>
+              </optgroup>
+              <optgroup label="Lodging">
+                <option value="Hotel">Hotel</option>
+                <option value="Motel / Inn">Motel / Inn</option>
+                <option value="Pension House">Pension House / Hostel</option>
+                <option value="Resort">Resort</option>
+              </optgroup>
+              <optgroup label="Educational">
+                <option value="Elementary School">Elementary School</option>
+                <option value="High School">High School / Senior High School</option>
+                <option value="College / University">College / University</option>
+                <option value="Vocational / Technical School">Vocational / Technical School</option>
+                <option value="Daycare / Pre-school">Daycare / Pre-school</option>
+                <option value="Tutorial / Review Center">Tutorial / Review Center</option>
+              </optgroup>
+              <optgroup label="Health Care">
+                <option value="Hospital">Hospital</option>
+                <option value="Clinic">Clinic / Medical Center</option>
+                <option value="Pharmacy / Drugstore">Pharmacy / Drugstore</option>
+                <option value="Dental Clinic">Dental Clinic</option>
+                <option value="Veterinary Clinic">Veterinary Clinic</option>
+                <option value="Optical Shop">Optical Shop</option>
+              </optgroup>
+              <optgroup label="Industrial">
+                <option value="Factory / Manufacturing">Factory / Manufacturing Plant</option>
+                <option value="Warehouse / Storage">Warehouse / Storage Facility</option>
+                <option value="LPG / Gas Depot">LPG / Gas Depot</option>
+                <option value="Gasoline Station">Gasoline Station</option>
+                <option value="Printing Press">Printing Press</option>
+                <option value="Cold Storage">Cold Storage / Ice Plant</option>
+              </optgroup>
+              <optgroup label="Automotive">
+                <option value="Auto Repair Shop">Auto Repair Shop / Vulcanizing</option>
+                <option value="Car Wash">Car Wash</option>
+                <option value="Auto Parts Store">Auto Parts Store</option>
+                <option value="Motorcycle Shop">Motorcycle Shop</option>
+              </optgroup>
+              <optgroup label="Financial &amp; Professional Services">
+                <option value="Bank">Bank / Savings Bank</option>
+                <option value="Pawnshop">Pawnshop</option>
+                <option value="Money Changer / Remittance">Money Changer / Remittance</option>
+                <option value="Insurance Office">Insurance Office</option>
+                <option value="Law / Accounting Office">Law / Accounting Office</option>
+                <option value="Real Estate Office">Real Estate Office</option>
+                <option value="BPO / Call Center">BPO / Call Center</option>
+              </optgroup>
+              <optgroup label="Personal Services">
+                <option value="Salon / Barbershop">Salon / Barbershop</option>
+                <option value="Laundry Shop">Laundry Shop</option>
+                <option value="Gym / Fitness Center">Gym / Fitness Center</option>
+                <option value="Spa / Massage">Spa / Massage</option>
+                <option value="Photography Studio">Photography Studio</option>
+              </optgroup>
+              <optgroup label="Entertainment">
+                <option value="Cinema / Theater">Cinema / Theater</option>
+                <option value="Arcade / Game Center">Arcade / Game Center</option>
+                <option value="Sports Facility">Sports Facility / Gym / Coliseum</option>
+                <option value="Events Venue">Events Venue / Reception Hall</option>
+                <option value="Internet Cafe">Internet Café / Computer Shop</option>
+              </optgroup>
+              <optgroup label="Religious &amp; Institutional">
+                <option value="Church / Religious Institution">Church / Religious Institution</option>
+                <option value="Government Office">Government Office</option>
+                <option value="Non-Government Organization">NGO / Non-Profit Organization</option>
+                <option value="Jail / Detention Center">Jail / Detention Center</option>
+              </optgroup>
+              <optgroup label="Transportation &amp; Logistics">
+                <option value="Bus / Jeepney Terminal">Bus / Jeepney Terminal</option>
+                <option value="Logistics / Courier">Logistics / Courier Facility</option>
+                <option value="Parking Facility">Parking Facility</option>
+              </optgroup>
+              <optgroup label="Agriculture">
+                <option value="Rice Mill">Rice Mill</option>
+                <option value="Poultry / Livestock">Poultry / Livestock Farm</option>
+                <option value="Slaughterhouse">Slaughterhouse</option>
+                <option value="Agri-Supply Store">Agri-Supply Store</option>
+              </optgroup>
+              <optgroup label="Other">
+                <option value="Other">Other</option>
+              </optgroup>
             </select>
           </div>
           <div class="col-md-3">
@@ -190,11 +295,111 @@ include '../../utility/checkingUser.php';
               <div class="col-md-6">
                 <div class="mb-3">
                   <label class="form-label">Business Type *</label>
-                  <input
-                    type="text"
-                    class="form-control"
-                    id="businessType"
-                    required />
+                  <select class="form-select" id="businessType" required>
+                    <option value="" disabled selected>-- Select Business Type --</option>
+                    <optgroup label="Residential">
+                      <option value="Single-Family Residential">Single-Family Residential</option>
+                      <option value="Multi-Family Residential">Multi-Family Residential / Apartment</option>
+                      <option value="Condominium">Condominium</option>
+                      <option value="Boarding House">Boarding House / Dormitory</option>
+                    </optgroup>
+                    <optgroup label="Commercial">
+                      <option value="Shopping Mall">Shopping Mall / Commercial Center</option>
+                      <option value="Supermarket / Grocery">Supermarket / Grocery</option>
+                      <option value="Retail Store">Retail Store</option>
+                      <option value="Convenience Store">Convenience Store</option>
+                      <option value="Public Market">Public Market / Palengke</option>
+                      <option value="Ukay-Ukay / Thrift Shop">Ukay-Ukay / Thrift Shop</option>
+                    </optgroup>
+                    <optgroup label="Food &amp; Beverage">
+                      <option value="Restaurant">Restaurant / Eatery</option>
+                      <option value="Fast Food">Fast Food</option>
+                      <option value="Bakery / Pastry Shop">Bakery / Pastry Shop</option>
+                      <option value="Catering Service">Catering Service</option>
+                      <option value="Bar / Night Club">Bar / Night Club / KTV</option>
+                      <option value="Coffee Shop">Coffee Shop / Café</option>
+                      <option value="Food Stall / Canteen">Food Stall / Canteen</option>
+                    </optgroup>
+                    <optgroup label="Lodging">
+                      <option value="Hotel">Hotel</option>
+                      <option value="Motel / Inn">Motel / Inn</option>
+                      <option value="Pension House">Pension House / Hostel</option>
+                      <option value="Resort">Resort</option>
+                    </optgroup>
+                    <optgroup label="Educational">
+                      <option value="Elementary School">Elementary School</option>
+                      <option value="High School">High School / Senior High School</option>
+                      <option value="College / University">College / University</option>
+                      <option value="Vocational / Technical School">Vocational / Technical School</option>
+                      <option value="Daycare / Pre-school">Daycare / Pre-school</option>
+                      <option value="Tutorial / Review Center">Tutorial / Review Center</option>
+                    </optgroup>
+                    <optgroup label="Health Care">
+                      <option value="Hospital">Hospital</option>
+                      <option value="Clinic">Clinic / Medical Center</option>
+                      <option value="Pharmacy / Drugstore">Pharmacy / Drugstore</option>
+                      <option value="Dental Clinic">Dental Clinic</option>
+                      <option value="Veterinary Clinic">Veterinary Clinic</option>
+                      <option value="Optical Shop">Optical Shop</option>
+                    </optgroup>
+                    <optgroup label="Industrial">
+                      <option value="Factory / Manufacturing">Factory / Manufacturing Plant</option>
+                      <option value="Warehouse / Storage">Warehouse / Storage Facility</option>
+                      <option value="LPG / Gas Depot">LPG / Gas Depot</option>
+                      <option value="Gasoline Station">Gasoline Station</option>
+                      <option value="Printing Press">Printing Press</option>
+                      <option value="Cold Storage">Cold Storage / Ice Plant</option>
+                    </optgroup>
+                    <optgroup label="Automotive">
+                      <option value="Auto Repair Shop">Auto Repair Shop / Vulcanizing</option>
+                      <option value="Car Wash">Car Wash</option>
+                      <option value="Auto Parts Store">Auto Parts Store</option>
+                      <option value="Motorcycle Shop">Motorcycle Shop</option>
+                    </optgroup>
+                    <optgroup label="Financial &amp; Professional Services">
+                      <option value="Bank">Bank / Savings Bank</option>
+                      <option value="Pawnshop">Pawnshop</option>
+                      <option value="Money Changer / Remittance">Money Changer / Remittance</option>
+                      <option value="Insurance Office">Insurance Office</option>
+                      <option value="Law / Accounting Office">Law / Accounting Office</option>
+                      <option value="Real Estate Office">Real Estate Office</option>
+                      <option value="BPO / Call Center">BPO / Call Center</option>
+                    </optgroup>
+                    <optgroup label="Personal Services">
+                      <option value="Salon / Barbershop">Salon / Barbershop</option>
+                      <option value="Laundry Shop">Laundry Shop</option>
+                      <option value="Gym / Fitness Center">Gym / Fitness Center</option>
+                      <option value="Spa / Massage">Spa / Massage</option>
+                      <option value="Photography Studio">Photography Studio</option>
+                    </optgroup>
+                    <optgroup label="Entertainment">
+                      <option value="Cinema / Theater">Cinema / Theater</option>
+                      <option value="Arcade / Game Center">Arcade / Game Center</option>
+                      <option value="Sports Facility">Sports Facility / Gym / Coliseum</option>
+                      <option value="Events Venue">Events Venue / Reception Hall</option>
+                      <option value="Internet Cafe">Internet Café / Computer Shop</option>
+                    </optgroup>
+                    <optgroup label="Religious &amp; Institutional">
+                      <option value="Church / Religious Institution">Church / Religious Institution</option>
+                      <option value="Government Office">Government Office</option>
+                      <option value="Non-Government Organization">NGO / Non-Profit Organization</option>
+                      <option value="Jail / Detention Center">Jail / Detention Center</option>
+                    </optgroup>
+                    <optgroup label="Transportation &amp; Logistics">
+                      <option value="Bus / Jeepney Terminal">Bus / Jeepney Terminal</option>
+                      <option value="Logistics / Courier">Logistics / Courier Facility</option>
+                      <option value="Parking Facility">Parking Facility</option>
+                    </optgroup>
+                    <optgroup label="Agriculture">
+                      <option value="Rice Mill">Rice Mill</option>
+                      <option value="Poultry / Livestock">Poultry / Livestock Farm</option>
+                      <option value="Slaughterhouse">Slaughterhouse</option>
+                      <option value="Agri-Supply Store">Agri-Supply Store</option>
+                    </optgroup>
+                    <optgroup label="Other">
+                      <option value="Other">Other</option>
+                    </optgroup>
+                  </select>
                 </div>
               </div>
             </div>
@@ -405,56 +610,152 @@ include '../../utility/checkingUser.php';
               </div>
               <div class="col-md-6">
                 <div class="mb-3">
-                  <label class="form-label">Ownership Type *</label>
+                  <label class="form-label">Ownership Type</label>
                   <input
                     type="text"
                     class="form-control"
-                    id="editOwnershipType"
-                    required />
+                    id="editOwnershipType" />
                 </div>
               </div>
             </div>
             <div class="row">
               <div class="col-md-6">
                 <div class="mb-3">
-                  <label class="form-label">Business Type. *</label>
-                  <input
-                    type="text"
-                    class="form-control"
-                    id="editBusinessType"
-                    required />
+                  <label class="form-label">Business Type *</label>
+                  <select class="form-select" id="editBusinessType" required>
+                    <option value="" disabled>-- Select Business Type --</option>
+                    <optgroup label="Residential">
+                      <option value="Single-Family Residential">Single-Family Residential</option>
+                      <option value="Multi-Family Residential">Multi-Family Residential / Apartment</option>
+                      <option value="Condominium">Condominium</option>
+                      <option value="Boarding House">Boarding House / Dormitory</option>
+                    </optgroup>
+                    <optgroup label="Commercial">
+                      <option value="Shopping Mall">Shopping Mall / Commercial Center</option>
+                      <option value="Supermarket / Grocery">Supermarket / Grocery</option>
+                      <option value="Retail Store">Retail Store</option>
+                      <option value="Convenience Store">Convenience Store</option>
+                      <option value="Public Market">Public Market / Palengke</option>
+                      <option value="Ukay-Ukay / Thrift Shop">Ukay-Ukay / Thrift Shop</option>
+                    </optgroup>
+                    <optgroup label="Food &amp; Beverage">
+                      <option value="Restaurant">Restaurant / Eatery</option>
+                      <option value="Fast Food">Fast Food</option>
+                      <option value="Bakery / Pastry Shop">Bakery / Pastry Shop</option>
+                      <option value="Catering Service">Catering Service</option>
+                      <option value="Bar / Night Club">Bar / Night Club / KTV</option>
+                      <option value="Coffee Shop">Coffee Shop / Café</option>
+                      <option value="Food Stall / Canteen">Food Stall / Canteen</option>
+                    </optgroup>
+                    <optgroup label="Lodging">
+                      <option value="Hotel">Hotel</option>
+                      <option value="Motel / Inn">Motel / Inn</option>
+                      <option value="Pension House">Pension House / Hostel</option>
+                      <option value="Resort">Resort</option>
+                    </optgroup>
+                    <optgroup label="Educational">
+                      <option value="Elementary School">Elementary School</option>
+                      <option value="High School">High School / Senior High School</option>
+                      <option value="College / University">College / University</option>
+                      <option value="Vocational / Technical School">Vocational / Technical School</option>
+                      <option value="Daycare / Pre-school">Daycare / Pre-school</option>
+                      <option value="Tutorial / Review Center">Tutorial / Review Center</option>
+                    </optgroup>
+                    <optgroup label="Health Care">
+                      <option value="Hospital">Hospital</option>
+                      <option value="Clinic">Clinic / Medical Center</option>
+                      <option value="Pharmacy / Drugstore">Pharmacy / Drugstore</option>
+                      <option value="Dental Clinic">Dental Clinic</option>
+                      <option value="Veterinary Clinic">Veterinary Clinic</option>
+                      <option value="Optical Shop">Optical Shop</option>
+                    </optgroup>
+                    <optgroup label="Industrial">
+                      <option value="Factory / Manufacturing">Factory / Manufacturing Plant</option>
+                      <option value="Warehouse / Storage">Warehouse / Storage Facility</option>
+                      <option value="LPG / Gas Depot">LPG / Gas Depot</option>
+                      <option value="Gasoline Station">Gasoline Station</option>
+                      <option value="Printing Press">Printing Press</option>
+                      <option value="Cold Storage">Cold Storage / Ice Plant</option>
+                    </optgroup>
+                    <optgroup label="Automotive">
+                      <option value="Auto Repair Shop">Auto Repair Shop / Vulcanizing</option>
+                      <option value="Car Wash">Car Wash</option>
+                      <option value="Auto Parts Store">Auto Parts Store</option>
+                      <option value="Motorcycle Shop">Motorcycle Shop</option>
+                    </optgroup>
+                    <optgroup label="Financial &amp; Professional Services">
+                      <option value="Bank">Bank / Savings Bank</option>
+                      <option value="Pawnshop">Pawnshop</option>
+                      <option value="Money Changer / Remittance">Money Changer / Remittance</option>
+                      <option value="Insurance Office">Insurance Office</option>
+                      <option value="Law / Accounting Office">Law / Accounting Office</option>
+                      <option value="Real Estate Office">Real Estate Office</option>
+                      <option value="BPO / Call Center">BPO / Call Center</option>
+                    </optgroup>
+                    <optgroup label="Personal Services">
+                      <option value="Salon / Barbershop">Salon / Barbershop</option>
+                      <option value="Laundry Shop">Laundry Shop</option>
+                      <option value="Gym / Fitness Center">Gym / Fitness Center</option>
+                      <option value="Spa / Massage">Spa / Massage</option>
+                      <option value="Photography Studio">Photography Studio</option>
+                    </optgroup>
+                    <optgroup label="Entertainment">
+                      <option value="Cinema / Theater">Cinema / Theater</option>
+                      <option value="Arcade / Game Center">Arcade / Game Center</option>
+                      <option value="Sports Facility">Sports Facility / Gym / Coliseum</option>
+                      <option value="Events Venue">Events Venue / Reception Hall</option>
+                      <option value="Internet Cafe">Internet Café / Computer Shop</option>
+                    </optgroup>
+                    <optgroup label="Religious &amp; Institutional">
+                      <option value="Church / Religious Institution">Church / Religious Institution</option>
+                      <option value="Government Office">Government Office</option>
+                      <option value="Non-Government Organization">NGO / Non-Profit Organization</option>
+                      <option value="Jail / Detention Center">Jail / Detention Center</option>
+                    </optgroup>
+                    <optgroup label="Transportation &amp; Logistics">
+                      <option value="Bus / Jeepney Terminal">Bus / Jeepney Terminal</option>
+                      <option value="Logistics / Courier">Logistics / Courier Facility</option>
+                      <option value="Parking Facility">Parking Facility</option>
+                    </optgroup>
+                    <optgroup label="Agriculture">
+                      <option value="Rice Mill">Rice Mill</option>
+                      <option value="Poultry / Livestock">Poultry / Livestock Farm</option>
+                      <option value="Slaughterhouse">Slaughterhouse</option>
+                      <option value="Agri-Supply Store">Agri-Supply Store</option>
+                    </optgroup>
+                    <optgroup label="Other">
+                      <option value="Other">Other</option>
+                    </optgroup>
+                  </select>
                 </div>
               </div>
               <div class="col-md-6">
                 <div class="mb-3">
-                  <label class="form-label">TIN (Tax Identification Number) *</label>
+                  <label class="form-label">TIN (Tax Identification Number)</label>
                   <input
                     type="text"
                     class="form-control"
-                    id="editTINNo"
-                    required />
+                    id="editTINNo" />
                 </div>
               </div>
             </div>
             <div class="row">
               <div class="col-md-6">
                 <div class="mb-3">
-                  <label class="form-label">Contact Number *</label>
+                  <label class="form-label">Contact Number</label>
                   <input
                     type="text"
                     class="form-control"
-                    id="editContactNum"
-                    required />
+                    id="editContactNum" />
                 </div>
               </div>
               <div class="col-md-6">
                 <div class="mb-3">
-                  <label class="form-label">Email Address *</label>
+                  <label class="form-label">Email Address</label>
                   <input
                     type="text"
                     class="form-control"
-                    id="editEmailAdd"
-                    required />
+                    id="editEmailAdd" />
                 </div>
               </div>
             </div>
