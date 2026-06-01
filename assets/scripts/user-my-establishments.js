@@ -66,6 +66,51 @@ let map;
 let selectedMarker;
 let selectedCoords = null;
 let isEditMode = false;
+let requiredDocuments = [];
+
+const REQUIRED_DOCUMENT_TYPES = [
+  'Fire Safety Evaluation Clearance (FSEC)',
+  'Occupancy Permit',
+  'Business Permit',
+  'Valid ID (Owner/Representative)',
+  'Building Plans/Floor Plan'
+];
+
+function onRequiredDocumentsSelected(input) {
+  requiredDocuments = Array.from(input.files || []);
+  renderRequiredDocumentsPreview();
+}
+
+function renderRequiredDocumentsPreview() {
+  const preview = document.getElementById('requiredDocumentsPreview');
+  if (!preview) {
+    return;
+  }
+
+  if (!requiredDocuments.length) {
+    preview.innerHTML = '';
+    return;
+  }
+
+  const items = requiredDocuments.map((file, index) => {
+    const docLabel = REQUIRED_DOCUMENT_TYPES[index] || `Additional Document ${index + 1}`;
+    const sizeLabel = (file.size / 1024 / 1024).toFixed(2) + ' MB';
+    return `
+      <div class="d-flex justify-content-between align-items-center border rounded px-3 py-2 mb-2 bg-light">
+        <div class="me-2">
+          <div class="fw-semibold">${docLabel}</div>
+          <div class="text-muted small text-truncate" style="max-width: 340px;">${file.name}</div>
+        </div>
+        <div class="text-muted small">${sizeLabel}</div>
+      </div>`;
+  }).join('');
+
+  const warning = requiredDocuments.length < 5
+    ? '<div class="alert alert-warning py-2 mb-0 small">Please select at least 5 files before saving.</div>'
+    : '';
+
+  preview.innerHTML = items + warning;
+}
 
 // Initialize map when modal is shown
 document
@@ -111,6 +156,18 @@ function openMapModalForEdit() {
   isEditMode = true;
   const mapModalEl = new bootstrap.Modal(document.getElementById("mapModal"));
   mapModalEl.show();
+
+      const addEstablishmentModal = document.getElementById('addEstablishmentModal');
+      if (addEstablishmentModal) {
+        addEstablishmentModal.addEventListener('hidden.bs.modal', function () {
+          requiredDocuments = [];
+          const input = document.getElementById('requiredDocuments');
+          if (input) {
+            input.value = '';
+          }
+          renderRequiredDocumentsPreview();
+        });
+      }
 }
 
 function selectLocation() {
@@ -215,23 +272,31 @@ async function saveEstablishment() {
     const longitude      = document.getElementById("longitude").textContent;
     const latitude       = document.getElementById("latitude").textContent;
 
+    if (requiredDocuments.length < 5) {
+      alert('Please select at least 5 required documents before saving.');
+      return;
+    }
+
     let res, json;
     try {
+      const formData = new FormData();
+      formData.append('business_name', businessName);
+      formData.append('registration_no', '');
+      formData.append('type', businessType);
+      formData.append('ownership_type', ownershipType);
+      formData.append('tin_number', tinNumber);
+      formData.append('contact_number', contactNum);
+      formData.append('contact_email', emailAdd);
+      formData.append('address', address);
+      formData.append('x_coordinate', longitude !== "Not selected" ? longitude : '');
+      formData.append('y_coordinate', latitude !== "Not selected" ? latitude : '');
+      requiredDocuments.forEach((file) => {
+        formData.append('required_documents[]', file);
+      });
+
       res  = await fetch('../../utility/addNewEstablishment.php', {
         method:  "POST",
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          business_name:   businessName,
-          registration_no: '',
-          type:            businessType,
-          ownership_type:  ownershipType,
-          tin_number:      tinNumber,
-          contact_number:  contactNum,
-          contact_email:   emailAdd,
-          address:         address,
-          x_coordinate:   longitude !== "Not selected" ? longitude : '',
-          y_coordinate:   latitude  !== "Not selected" ? latitude  : '',
-        })
+        body: formData
       });
       json = await res.json();
     } catch (err) {
@@ -250,6 +315,8 @@ async function saveEstablishment() {
     );
     addModalEl.hide();
     form.reset();
+    requiredDocuments = [];
+    renderRequiredDocumentsPreview();
     document.getElementById("longitude").textContent = "Not selected";
     document.getElementById("latitude").textContent  = "Not selected";
 

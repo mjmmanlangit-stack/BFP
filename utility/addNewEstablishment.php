@@ -13,9 +13,12 @@ header('Content-Type: application/json');
 try {
     include_once 'db.php';
     include_once 'mailer.php';
-    
-    // Get JSON data from request body
-    $data = json_decode(file_get_contents("php://input"), true);
+
+    $contentType = $_SERVER['CONTENT_TYPE'] ?? $_SERVER['HTTP_CONTENT_TYPE'] ?? '';
+    $isMultipart = stripos($contentType, 'multipart/form-data') !== false;
+
+    // Support both JSON and multipart submissions
+    $data = $isMultipart ? $_POST : json_decode(file_get_contents("php://input"), true);
 
     // Verify user is authenticated
     if (!isset($_SESSION['user'])) {
@@ -23,6 +26,13 @@ try {
     }
 
     $user_id = $_SESSION['user'];
+    $requiredDocumentTypes = [
+        'Fire Safety Evaluation Clearance (FSEC)',
+        'Occupancy Permit',
+        'Business Permit',
+        'Valid ID (Owner/Representative)',
+        'Building Plans/Floor Plan'
+    ];
     
     if (!$data) {
         throw new Exception('No data received');
@@ -45,6 +55,8 @@ try {
     if (!$business_name || !$type || !$address) {
         throw new Exception('Business name, type, and address are required');
     }
+
+    $conn->begin_transaction();
 
     // Check for duplicate registration number
     if ($registration_no !== '') {
@@ -77,12 +89,103 @@ try {
     $establishment_id = $conn->insert_id;
     $stmt->close();
 
+    // Upload required documents when provided from the Add New Establishment flow
+    if ($isMultipart) {
+        if (!isset($_FILES['required_documents'])) {
+            throw new Exception('Required documents are missing');
+        }
+
+        $uploadedNames = $_FILES['required_documents']['name'] ?? [];
+        $selectedCount = 0;
+        if (is_array($uploadedNames)) {
+            foreach ($uploadedNames as $uploadedName) {
+                if (!empty($uploadedName)) {
+                    $selectedCount++;
+                }
+            }
+        }
+        if (!is_array($uploadedNames) || $selectedCount < 5) {
+            throw new Exception('Please upload at least 5 required documents');
+        }
+
+        $uploadDir = __DIR__ . '/../uploads/documents/';
+        if (!is_dir($uploadDir) && !mkdir($uploadDir, 0755, true)) {
+            throw new Exception('Unable to create upload directory');
+        }
+        if (!is_writable($uploadDir)) {
+            throw new Exception('Upload directory is not writable');
+        }
+
+        $fileCount = count($uploadedNames);
+        $savedFiles = [];
+
+        for ($i = 0; $i < $fileCount; $i++) {
+            if (empty($_FILES['required_documents']['name'][$i])) {
+                continue;
+            }
+
+            $error = $_FILES['required_documents']['error'][$i] ?? UPLOAD_ERR_NO_FILE;
+            if ($error !== UPLOAD_ERR_OK) {
+                throw new Exception('One or more required documents failed to upload');
+            }
+
+            $originalName = basename($_FILES['required_documents']['name'][$i]);
+            $fileSize     = (int)($_FILES['required_documents']['size'][$i] ?? 0);
+            $tmpPath      = $_FILES['required_documents']['tmp_name'][$i] ?? '';
+
+            $allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg',
+                             'application/msword',
+                             'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            if (!$finfo) {
+                throw new Exception('Unable to determine file type');
+            }
+            $mimeType = finfo_file($finfo, $tmpPath);
+            finfo_close($finfo);
+
+            if (!in_array($mimeType, $allowedTypes, true)) {
+                throw new Exception('Invalid file type for ' . $originalName);
+            }
+
+            if ($fileSize > 10 * 1024 * 1024) {
+                throw new Exception('File size must not exceed 10 MB');
+            }
+
+            $docType = $requiredDocumentTypes[$i] ?? ('Additional Document ' . ($i + 1));
+            $ext = pathinfo($originalName, PATHINFO_EXTENSION);
+            $slug = preg_replace('/[^a-z0-9]+/i', '_', strtolower($docType));
+            $filename = 'doc_' . $user_id . '_' . $establishment_id . '_' . $slug . '_' . time() . '_' . ($i + 1) . '.' . $ext;
+            $destPath = $uploadDir . $filename;
+
+            if (!move_uploaded_file($tmpPath, $destPath)) {
+                throw new Exception('Failed to save document file');
+            }
+
+            $docStmt = $conn->prepare(
+                "INSERT INTO documents (establishment_id, owner_id, document_type, filename, original_name, file_size, status)
+                 VALUES (?, ?, ?, ?, ?, ?, 'pending')"
+            );
+            if (!$docStmt) {
+                @unlink($destPath);
+                throw new Exception('Database error: ' . $conn->error);
+            }
+
+            $docStmt->bind_param("iisssi", $establishment_id, $user_id, $docType, $filename, $originalName, $fileSize);
+            if (!$docStmt->execute()) {
+                @unlink($destPath);
+                throw new Exception('Failed to record document: ' . $docStmt->error);
+            }
+            $savedFiles[] = $destPath;
+            $docStmt->close();
+        }
+    }
+
     // Log the establishment creation (wrapped in try-catch to not break the response)
     try {
         if (isset($activityLogger)) {
             $activityLogger->logCreate(
                 $user_id,
-                'establishment_created',
                 'establishment',
                 'Created new establishment: ' . $business_name . ' (' . $type . ')',
                 [
@@ -153,12 +256,24 @@ try {
         error_log('CRO notification failed: ' . $croErr->getMessage());
     }
 
+    $conn->commit();
+
     // Success response
     ob_clean();
-    echo json_encode(['success' => true, 'establishment_id' => $establishment_id]);
+    echo json_encode(['success' => true, 'establishment_id' => $establishment_id, 'documents_uploaded' => isset($savedFiles) ? count($savedFiles) : 0]);
 
 } catch (Exception $e) {
     // Catch any errors and return as JSON
+    if (!empty($savedFiles) && is_array($savedFiles)) {
+        foreach ($savedFiles as $savedFile) {
+            if (is_string($savedFile) && file_exists($savedFile)) {
+                @unlink($savedFile);
+            }
+        }
+    }
+    if (isset($conn) && $conn instanceof mysqli) {
+        $conn->rollback();
+    }
     ob_clean();
     http_response_code(400);
     echo json_encode(['error' => $e->getMessage()]);

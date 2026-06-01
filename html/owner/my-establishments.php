@@ -472,41 +472,23 @@ include '../../utility/checkingUser.php';
                 <i class="fas fa-map-marker-alt"></i> Select on Map
               </button>
             </div>
-            <div class="row">
-              <div class="col-md-6">
-                <div class="mb-3">
-                  <label class="form-label">Fire Safety Evaluation Clearance (FSEC) *</label>
-                  <input type="file" class="form-control" id="FSEC" required>
-                </div>
+            <div class="mb-3">
+              <label class="form-label">Required Documents *</label>
+              <div class="alert alert-light border small mb-2">
+                Upload all required documents at once: FSEC, Occupancy Permit, Business Permit, Valid ID (Owner/Representative), and Building Plans/Floor Plan.
               </div>
-              <div class="col-md-6">
-                <div class="mb-3">
-                  <label class="form-label">Occupancy Permit *</label>
-                  <input type="file" class="form-control" id="occupancyPermit" required>
-                </div>
+              <input
+                type="file"
+                class="form-control"
+                id="requiredDocuments"
+                multiple
+                accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                onchange="onRequiredDocumentsSelected(this)"
+                required />
+              <div class="form-text">
+                Select at least 5 files. They will be saved in the required document order.
               </div>
-            </div>
-            <div class="row">
-              <div class="col-md-6">
-                <div class="mb-3">
-                  <label class="form-label">Business Permit *</label>
-                  <input type="file" class="form-control" id="businessPermit" required>
-                </div>
-              </div>
-              <div class="col-md-6">
-                <div class="mb-3">
-                  <label class="form-label">Valid ID (Owner/Representative) *</label>
-                  <input type="file" class="form-control" id="businessPermit" required>
-                </div>
-              </div>
-            </div>
-            <div class="row">
-              <div class="col-md-6">
-                <div class="mb-3">
-                  <label class="form-label">Building Plans/Floor Plan *</label>
-                  <input type="file" class="form-control" id="plans" required>
-                </div>
-              </div>
+              <div id="requiredDocumentsPreview" class="mt-2"></div>
             </div>
           </form>
         </div>
